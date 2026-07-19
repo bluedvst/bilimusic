@@ -615,6 +615,15 @@ class DualAudioService {
     debugPrint('[DualAudioService] 播放模式切换为 ${_playMode.value}');
   }
 
+  /// 显式设置播放模式（与 togglePlayMode 互不影响）。
+  ///
+  /// 仅支持 [PlayMode] 中的值，漫游模式（roam）由 PlayerCoordinator 内部状态机
+  /// 管理，独立于 [PlayMode]，不在此处暴露。
+  void setPlayMode(PlayMode mode) {
+    _playMode.value = mode;
+    debugPrint('[DualAudioService] setPlayMode $mode');
+  }
+
   /// 释放资源
   Future<void> dispose() async {
     debugPrint('[DualAudioService] 开始释放资源');

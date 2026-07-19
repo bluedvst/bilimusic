@@ -9,6 +9,7 @@ import 'package:bilimusic/utils/network_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:bilimusic/shells/shell_page_manager.dart';
 import 'package:bilimusic/providers/playlist_providers.dart';
+import 'package:bilimusic/pages/profile/widgets/roam_section.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -263,6 +264,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
                   const SizedBox(height: 20),
 
+                  // 漫游模式
+                  const RoamSection(),
+
+                  const SizedBox(height: 20),
+
                   // 功能列表
                   _buildFunctionList(),
                 ],
@@ -379,6 +385,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             },
           ),
         ],
+        const SizedBox(height: 80),
       ],
     );
   }
