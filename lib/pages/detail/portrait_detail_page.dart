@@ -374,7 +374,7 @@ class _PortraitDetailPageState extends ConsumerState<PortraitDetailPage> {
             children: [
               IconButton(
                 icon: Icon(
-                  Icons.shuffle,
+                  widget.playModeIcon,
                   color: Colors.white.withValues(alpha: 0.7),
                 ),
                 iconSize: 24,
