@@ -513,11 +513,16 @@ class PlaylistService {
     final removeIdx = _findMusicIndex(list, music);
     if (removeIdx == -1) return;
 
+    // 同步从内存中移除，让 UI 在同一帧 rebuild（Dismissible 要求 onDismissed
+    // 触发后父级立刻把 widget 从树中移除，否则会触发 "still in tree" 断言）
+    final newList = List<Music>.from(list)..removeAt(removeIdx);
+    _currentPlaylist.value = newList;
+
     final currentIdx = _currentIndex.value;
     if (currentIdx != null) {
       if (removeIdx == currentIdx) {
-        if (list.length - 1 > 0) {
-          _currentIndex.value = removeIdx < list.length - 1
+        if (newList.isNotEmpty) {
+          _currentIndex.value = removeIdx < newList.length
               ? removeIdx
               : removeIdx - 1;
         } else {
