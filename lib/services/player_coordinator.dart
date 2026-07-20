@@ -20,11 +20,13 @@ class _RoamSession {
   final String playlistId;
   final RoamStyle style;
   final int refillThreshold;
+  final List<Music> seeds;
 
   const _RoamSession({
     required this.playlistId,
     required this.style,
     required this.refillThreshold,
+    this.seeds = const [],
   });
 }
 
@@ -126,6 +128,11 @@ class PlayerCoordinator {
 
   /// 暴露 [ApiService.ensureCid] 给 PlaylistService 在加载时回填缺失 cid。
   Future<Music> ensureCid(Music music) => _apiService.ensureCid(music);
+
+  /// 播放当前索引处的曲目。
+  ///
+  /// `_playCurrentTrack` 的 public 转发，供 onboarding apply 步骤调用。
+  Future<void> playCurrentTrack() => _playCurrentTrack();
 
   /// 播放当前曲目
   Future<void> _playCurrentTrack() async {
@@ -650,10 +657,49 @@ class PlayerCoordinator {
       playlistId: playlistId,
       style: style,
       refillThreshold: _settingsManager.roamRefillThreshold,
+      seeds: seeds,
     );
 
     await _playCurrentTrack();
     debugPrint('[PlayerCoordinator] roam started from $playlistId, style=$style');
+  }
+
+  /// 应用漫游播放列表（供 onboarding 完成步骤使用）。
+  ///
+  /// 与 [startRoam] 的区别：
+  /// - 不再从歌单加载种子，调用方已准备好完整播放列表 [songs]（种子 + 推荐 shuffle 后）。
+  /// - 显式传入用户挑选的 [seeds]（数量 = 1 或 3），用于续杯时的多种子拉取。
+  Future<void> applyRoamPlaylist({
+    required List<Music> songs,
+    required RoamStyle style,
+    required String playlistId,
+    required List<Music> seeds,
+  }) async {
+    // 先停掉当前播放（防 crossfade 残留状态污染新队列）
+    await _audioService.stop();
+    _preloadedMusic = null;
+    _preloadedIndex = null;
+    await clearPlaylist();
+
+    if (songs.isEmpty) {
+      debugPrint('[PlayerCoordinator] applyRoamPlaylist: empty songs');
+      return;
+    }
+
+    await _playlistService.addAllToPlaylist(songs);
+    _playlistService.setCurrentIndex(0);
+
+    _roamSession = _RoamSession(
+      playlistId: playlistId,
+      style: style,
+      refillThreshold: _settingsManager.roamRefillThreshold,
+      seeds: seeds,
+    );
+
+    await _playCurrentTrack();
+    debugPrint(
+      '[PlayerCoordinator] roam applied: ${songs.length} songs, ${seeds.length} seeds, style=$style',
+    );
   }
 
   /// 退出漫游模式：停用 session，队列保留并继续按当前 PlayMode 播。
@@ -682,25 +728,37 @@ class PlayerCoordinator {
 
   /// 拉一批候选歌曲并追加到当前队列。
   ///
+  /// 多种子 refill：
+  /// - 主种子 = 当前播放的歌曲
+  /// - 副种子 = 从 session.seeds 中随机抽 1 颗（避免与当前曲重复）
+  /// - 两个种子并发 fetchBatch(size: 2) → 合并 → shuffle → take 4
   /// - `_roamFetchInFlight` 防重入
-  /// - fetchBatch 内部已经按 (bvid, cid) 去重
   /// - 失败 / 0 候选：debugPrint 留痕，下次 currentIndex 变化再用新 seed 重试
   Future<void> _triggerRoamFetch() async {
     final session = _roamSession;
-    final seed = _playlistService.currentMusic;
-    if (session == null || seed == null) return;
+    final current = _playlistService.currentMusic;
+    if (session == null || current == null) return;
+
+    // 副种子：从 session.seeds 中随机抽 1 颗（剔除与 currentMusic 同 id 的）
+    final pool = session.seeds.where((s) => s.id != current.id).toList();
+    final companion = pool.isNotEmpty ? pool[_random.nextInt(pool.length)] : null;
+    final seeds = companion != null && companion.id != current.id
+        ? [current, companion]
+        : [current];
 
     _roamFetchInFlight = true;
     try {
-      final batch = await _roamingService.fetchBatch(
-        seed: seed,
-        style: session.style,
-        size: 3,
+      final futures = seeds.map(
+        (s) =>
+            _roamingService.fetchBatch(seed: s, style: session.style, size: 2),
       );
-      if (batch.isNotEmpty) {
-        await _playlistService.addAllToPlaylist(batch);
+      final batches = await Future.wait(futures);
+      final merged = batches.expand((l) => l).toList()..shuffle(_random);
+      final unique = _dedupByIdCid(merged).take(4).toList();
+      if (unique.isNotEmpty) {
+        await _playlistService.addAllToPlaylist(unique);
         debugPrint(
-          '[PlayerCoordinator] roam refilled +${batch.length} (style=${session.style.name})',
+          '[PlayerCoordinator] roam refilled +${unique.length} (seeds=${seeds.length}, style=${session.style.name})',
         );
       } else {
         debugPrint('[PlayerCoordinator] roam refill: 0 candidates');
@@ -710,6 +768,17 @@ class PlayerCoordinator {
     } finally {
       _roamFetchInFlight = false;
     }
+  }
+
+  /// 按 (id, cid) 去重。
+  List<Music> _dedupByIdCid(List<Music> list) {
+    final seen = <String>{};
+    final out = <Music>[];
+    for (final m in list) {
+      final key = '${m.id}_${m.cid}';
+      if (seen.add(key)) out.add(m);
+    }
+    return out;
   }
 
   /// 音频状态变化处理
@@ -788,6 +857,11 @@ class PlayerCoordinator {
 
   /// 当前漫游会话的风格档位。
   RoamStyle? get roamStyle => _roamSession?.style;
+
+  /// 当前漫游会话的用户挑选种子（1 颗 lowData / 3 颗 normal）。
+  ///
+  /// 仅当 [isRoaming] 为 true 时有意义。用于续杯的多种子拉取。
+  List<Music> get roamSeeds => _roamSession?.seeds ?? const [];
 
   /// 获取当前播放的音乐
   Music? get currentMusic => _playlistService.currentMusic;

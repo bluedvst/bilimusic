@@ -15,6 +15,7 @@ enum ShellPage {
   dataMigration,
   login,
   favImport,
+  roamOnboarding,
 }
 
 class ShellPageManager extends ChangeNotifier {

@@ -23,6 +23,7 @@ import 'package:bilimusic/pages/data_management_page.dart';
 import 'package:bilimusic/pages/data_migration_page.dart';
 import 'package:bilimusic/pages/login_page.dart';
 import 'package:bilimusic/pages/fav_import_page.dart';
+import 'package:bilimusic/pages/roam_onboarding/roam_onboarding_page.dart';
 
 /// 横屏模式外壳 - 基于ParticleMusic风格
 /// 布局：标题栏 + 侧边栏 + 主内容区 + 底部播放器栏
@@ -97,6 +98,8 @@ class _LandscapeShellState extends ConsumerState<LandscapeShell> {
         return const FavImportPage();
       case ShellPage.login:
         return LoginPage();
+      case ShellPage.roamOnboarding:
+        return const RoamOnboardingPage();
     }
   }
 

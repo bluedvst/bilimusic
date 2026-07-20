@@ -263,12 +263,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   ),
 
                   const SizedBox(height: 20),
-
-                  // 漫游模式
-                  const RoamSection(),
-
-                  const SizedBox(height: 20),
-
+                  
                   // 功能列表
                   _buildFunctionList(),
                 ],
@@ -364,6 +359,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             _showPlaylists();
           },
         ),
+
+        const Divider(height: 1),
+
+        // 漫游模式
+        const RoamSection(),
 
         // Bilibili 收藏夹同步（仅登录后显示）
         if (ref.read(userManagerProvider).isLoggedIn) ...[

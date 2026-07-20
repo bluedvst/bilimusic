@@ -21,6 +21,7 @@ import 'package:bilimusic/pages/data_management_page.dart';
 import 'package:bilimusic/pages/data_migration_page.dart';
 import 'package:bilimusic/pages/login_page.dart';
 import 'package:bilimusic/pages/fav_import_page.dart';
+import 'package:bilimusic/pages/roam_onboarding/roam_onboarding_page.dart';
 
 /// 竖屏模式外壳 - 包含平板模式和手机模式布局
 /// 平板：NavigationRail + 主内容 + 迷你播放器
@@ -88,6 +89,8 @@ class PortraitShell extends ConsumerWidget {
         return const FavImportPage();
       case ShellPage.login:
         return LoginPage();
+      case ShellPage.roamOnboarding:
+        return const RoamOnboardingPage();
     }
   }
 

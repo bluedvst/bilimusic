@@ -119,4 +119,80 @@ class RoamingService {
         return fresh.reversed.take(size).toList();
     }
   }
+
+  /// 预取一轮候选的推荐（用于 onboarding step A.5/B）。
+  ///
+  /// - 并发调用 [fetchBatch]（默认 `balanced` 风格以最大化多样性）。
+  /// - 全部失败且 [candidates] 长度足够时 fallback = 把 candidates 本身当候选
+  ///   （适用于 tempQueue 很小的低数据模式）。
+  /// - 结果已按 (id, cid) 去重并随机洗牌。
+  Future<List<Music>> prefetchRound({
+    required List<Music> candidates,
+    int maxPerRound = 5,
+    Duration timeout = const Duration(seconds: 6),
+  }) async {
+    if (candidates.isEmpty) return const [];
+
+    final futures = candidates.map((c) async {
+      try {
+        return await fetchBatch(
+          seed: c,
+          style: RoamStyle.balanced,
+          size: maxPerRound,
+        ).timeout(timeout);
+      } catch (_) {
+        return const <Music>[];
+      }
+    }).toList();
+
+    final results = await Future.wait(futures);
+    final merged = results.expand((l) => l).toList();
+    final deduped = _dedupByIdCid(merged);
+    deduped.shuffle(_random);
+
+    if (deduped.isEmpty && candidates.length >= maxPerRound) {
+      return candidates.take(maxPerRound).toList();
+    }
+    return deduped.take(maxPerRound).toList();
+  }
+
+  /// 从多颗种子 fetch 推荐并合并。
+  ///
+  /// - 每颗种子 fetch size = `ceil(totalSize / seeds.length)`。
+  /// - 内部已按 (id, cid) 去重。
+  /// - 接受部分失败（个别种子 fetch 失败不会中断其他种子）。
+  Future<List<Music>> fetchMultiSeed({
+    required List<Music> seeds,
+    required RoamStyle style,
+    required int totalSize,
+    Duration timeout = const Duration(seconds: 10),
+  }) async {
+    if (seeds.isEmpty || totalSize <= 0) return const [];
+
+    final perSeed = (totalSize / seeds.length).ceil();
+    final futures = seeds.map((s) async {
+      try {
+        return await fetchBatch(seed: s, style: style, size: perSeed)
+            .timeout(timeout);
+      } catch (_) {
+        return const <Music>[];
+      }
+    }).toList();
+
+    final results = await Future.wait(futures);
+    final merged = results.expand((l) => l).toList();
+    final deduped = _dedupByIdCid(merged);
+    return deduped.take(totalSize).toList();
+  }
+
+  /// 按 (id, cid) 去重。用于合并多个 [fetchBatch] 结果。
+  List<Music> _dedupByIdCid(List<Music> list) {
+    final seen = <String>{};
+    final out = <Music>[];
+    for (final m in list) {
+      final key = '${m.id}_${m.cid}';
+      if (seen.add(key)) out.add(m);
+    }
+    return out;
+  }
 }
