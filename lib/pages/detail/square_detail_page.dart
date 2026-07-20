@@ -8,8 +8,6 @@ import 'package:bilimusic/components/auto_appbar.dart';
 import 'package:bilimusic/components/lyric/lyric_section.dart';
 import 'package:bilimusic/components/lyric/lyric_source.dart';
 import 'package:bilimusic/models/music.dart' as model;
-import 'package:bilimusic/pages/detail/portrait_detail_page.dart'
-    show LyricInfo;
 import 'package:bilimusic/providers/playback_providers.dart';
 import 'package:bilimusic/shells/shell_page_manager.dart';
 import 'package:bilimusic/utils/dialog_helpers.dart';
@@ -26,12 +24,11 @@ class SquareDetailPage extends ConsumerWidget {
   final Duration? duration;
   final bool isPlaying;
   final bool showLyrics;
-  final List<LyricInfo> lyricOptions;
+  final List<LyricSource> lyricSources;
   final String? selectedLyricId;
   final LyricParser? lyricParser;
   final bool isLoadingLyrics;
   final Color? dominantColor;
-  final Color? vibrantColor;
   final IconData playModeIcon;
   final bool isTransitioning;
   final VoidCallback onToggleFavorite;
@@ -49,12 +46,11 @@ class SquareDetailPage extends ConsumerWidget {
     required this.duration,
     required this.isPlaying,
     required this.showLyrics,
-    required this.lyricOptions,
+    required this.lyricSources,
     required this.selectedLyricId,
     required this.lyricParser,
     required this.isLoadingLyrics,
     required this.dominantColor,
-    required this.vibrantColor,
     required this.playModeIcon,
     required this.isTransitioning,
     required this.onToggleFavorite,
@@ -343,10 +339,6 @@ class SquareDetailPage extends ConsumerWidget {
   }
 
   Widget _buildLyricsView(BuildContext context, WidgetRef ref) {
-    final lyricSources = lyricOptions.map((option) {
-      return LyricSource(id: option.id, name: option.name);
-    }).toList();
-
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: _buildAppBar(context, ref),

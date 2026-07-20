@@ -7,10 +7,10 @@ import 'package:bilimusic/components/common/landscape_seek_bar.dart';
 import 'package:bilimusic/components/common/playback_buttons.dart';
 import 'package:bilimusic/providers/playback_providers.dart';
 
-/// 横屏左侧播放信息面板
-/// Apple Music 风格：封面 + 歌曲信息 + 操作按钮 + 进度条 + 5 个播放控制按钮 + 音量
-/// 切歌时，封面与歌曲信息行有淡入 + 上滑过渡；其余控件保持不动。
-class LandscapeAlbumSection extends ConsumerStatefulWidget {
+/// 竖屏详情页单面板：
+/// 封面 + 歌曲信息 + 收藏/分享 + 进度条 + 5 个播放按钮 + 音量。
+/// 切歌时，封面与歌曲信息行淡入 + 上滑，其余控件保持不动。
+class PortraitAlbumSection extends ConsumerStatefulWidget {
   final String coverUrl;
   final String title;
   final String artist;
@@ -21,6 +21,7 @@ class LandscapeAlbumSection extends ConsumerStatefulWidget {
   final VoidCallback? onFavoritePressed;
   final VoidCallback? onSharePressed;
   final VoidCallback? onCoverTap;
+  final VoidCallback? onShowLyrics;
 
   // 播放控制
   final bool isPlaying;
@@ -31,7 +32,7 @@ class LandscapeAlbumSection extends ConsumerStatefulWidget {
   final VoidCallback? onPlayModeToggle;
   final VoidCallback? onPlaylist;
 
-  const LandscapeAlbumSection({
+  const PortraitAlbumSection({
     super.key,
     required this.coverUrl,
     required this.title,
@@ -43,6 +44,7 @@ class LandscapeAlbumSection extends ConsumerStatefulWidget {
     this.onFavoritePressed,
     this.onSharePressed,
     this.onCoverTap,
+    this.onShowLyrics,
     required this.isPlaying,
     required this.playModeIcon,
     this.onPlayPause,
@@ -53,11 +55,11 @@ class LandscapeAlbumSection extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<LandscapeAlbumSection> createState() =>
-      _LandscapeAlbumSectionState();
+  ConsumerState<PortraitAlbumSection> createState() =>
+      _PortraitAlbumSectionState();
 }
 
-class _LandscapeAlbumSectionState extends ConsumerState<LandscapeAlbumSection>
+class _PortraitAlbumSectionState extends ConsumerState<PortraitAlbumSection>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _fadeAnimation;
@@ -95,7 +97,7 @@ class _LandscapeAlbumSectionState extends ConsumerState<LandscapeAlbumSection>
   }
 
   @override
-  void didUpdateWidget(LandscapeAlbumSection oldWidget) {
+  void didUpdateWidget(PortraitAlbumSection oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.trackId != null &&
         widget.trackId != _previousTrackId &&
@@ -120,48 +122,44 @@ class _LandscapeAlbumSectionState extends ConsumerState<LandscapeAlbumSection>
 
   @override
   Widget build(BuildContext context) {
-    final padding = LandscapeBreakpoints.getHorizontalPadding(context);
-    final coverSize = LandscapeBreakpoints.getCoverSize(context);
+    final padding = PortraitBreakpoints.getHorizontalPadding(context);
+    final coverSize = PortraitBreakpoints.getCoverSize(context);
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: padding, vertical: 16),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 封面（带切歌过渡）
-            _animated(
-              AppleMusicCover(
-                coverUrl: widget.coverUrl,
-                dominantColor: widget.dominantColor,
-                onTap: widget.onCoverTap,
-                customSize: coverSize,
-              ),
+      padding: EdgeInsets.symmetric(horizontal: padding, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 封面（带切歌过渡）
+          _animated(
+            AppleMusicCover(
+              coverUrl: widget.coverUrl,
+              dominantColor: widget.dominantColor,
+              onTap: widget.onCoverTap,
+              customSize: coverSize,
             ),
-            SizedBox(height: coverSize * 0.2),
-            // 歌曲信息 + 收藏/分享（带切歌过渡）
-            _animated(_buildInfoRow(context, coverSize)),
-            const SizedBox(height: 20),
-            // 进度条（与横屏底栏同款的无白点条）
-            const LandscapeSeekBar(
-              color: Colors.white,
-              widgetHeight: 20,
-              seekBarHeight: 8,
-            ),
-            const SizedBox(height: 12),
-            // 5 个播放控制按钮
-            _buildControlRow(
-              context,
-              MediaQuery.of(context).size.width <
-                  LandscapeBreakpoints.largeTabletMin,
-            ),
-            const SizedBox(height: 16),
-            // 音量调节（Apple Music 风格：喇叭图标 + 细条）
-            _buildVolumeControl(context),
-            const SizedBox(height: 8),
-          ],
-        ),
+          ),
+          SizedBox(height: coverSize * 0.2),
+          // 歌曲信息 + 收藏/分享（带切歌过渡）
+          _animated(_buildInfoRow(context)),
+          SizedBox(height: coverSize * 0.15),
+          // 进度条
+          const LandscapeSeekBar(
+            color: Colors.white,
+            widgetHeight: 20,
+            seekBarHeight: 10,
+          ),
+          SizedBox(height: coverSize * 0.1),
+          // 5 个播放控制按钮
+          _buildControlRow(context),
+          SizedBox(height: coverSize * 0.1),
+          // 音量调节
+          _buildVolumeControl(context),
+          SizedBox(height: coverSize * 0.1),
+          // 「显示歌词」入口
+          if (widget.onShowLyrics != null) _buildLyricsEntry(context),
+        ],
       ),
     );
   }
@@ -187,7 +185,7 @@ class _LandscapeAlbumSectionState extends ConsumerState<LandscapeAlbumSection>
             ),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         SizedBox(
           width: 160,
           height: 20,
@@ -212,11 +210,12 @@ class _LandscapeAlbumSectionState extends ConsumerState<LandscapeAlbumSection>
     );
   }
 
-  Widget _buildInfoRow(BuildContext context, double coverSize) {
+  Widget _buildInfoRow(BuildContext context) {
+    final actionSize = PortraitBreakpoints.getCircleActionSize(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Expanded(child: _buildSongInfo(context, coverSize)),
+        Expanded(child: _buildSongInfo(context)),
         const SizedBox(width: 12),
         Column(
           mainAxisSize: MainAxisSize.min,
@@ -226,16 +225,16 @@ class _LandscapeAlbumSectionState extends ConsumerState<LandscapeAlbumSection>
               iconColor: widget.isFavorite
                   ? (Colors.red[400] ?? Colors.red)
                   : Colors.white,
-              size: 44,
-              iconSize: 22,
+              size: actionSize,
+              iconSize: actionSize * 0.5,
               onTap: widget.onFavoritePressed,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             CircleIconButton(
               icon: Icons.share_outlined,
               iconColor: Colors.white,
-              size: 44,
-              iconSize: 22,
+              size: actionSize,
+              iconSize: actionSize * 0.5,
               onTap: widget.onSharePressed,
             ),
           ],
@@ -244,35 +243,29 @@ class _LandscapeAlbumSectionState extends ConsumerState<LandscapeAlbumSection>
     );
   }
 
-  Widget _buildSongInfo(BuildContext context, double coverSize) {
-    // 标题字号跟随封面尺寸自适应
-    final titleFontSize = (coverSize * 0.11).clamp(18.0, 26.0);
-    final subtitleFontSize = (coverSize * 0.07).clamp(13.0, 17.0);
-
+  Widget _buildSongInfo(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 标题
         Text(
           widget.title,
-          style: TextStyle(
+          style: const TextStyle(
             color: Colors.white,
-            fontSize: titleFontSize,
+            fontSize: 22,
             fontWeight: FontWeight.bold,
             letterSpacing: -0.3,
-            height: 1.2,
+            height: 1.25,
           ),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           textAlign: TextAlign.left,
         ),
         const SizedBox(height: 4),
-        // 艺术家
         Text(
           widget.artist,
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.7),
-            fontSize: subtitleFontSize,
+            fontSize: 15,
             fontWeight: FontWeight.w400,
           ),
           maxLines: 1,
@@ -280,12 +273,11 @@ class _LandscapeAlbumSectionState extends ConsumerState<LandscapeAlbumSection>
           textAlign: TextAlign.left,
         ),
         const SizedBox(height: 2),
-        // 专辑
         Text(
           widget.album,
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.45),
-            fontSize: subtitleFontSize * 0.9,
+            fontSize: 13,
             fontWeight: FontWeight.w400,
           ),
           maxLines: 1,
@@ -296,19 +288,18 @@ class _LandscapeAlbumSectionState extends ConsumerState<LandscapeAlbumSection>
     );
   }
 
-  Widget _buildControlRow(BuildContext context, bool isSmall) {
-    final mainSize = LandscapeBreakpoints.getMainPlayButtonSize(context);
-    final smallSize = isSmall ? 32.0 : 36.0;
-    final smallIconSize = isSmall ? 18.0 : 20.0;
+  Widget _buildControlRow(BuildContext context) {
+    final mainSize = PortraitBreakpoints.getMainPlayButtonSize(context);
+    final smallSize = PortraitBreakpoints.getSideButtonSize(context);
+    final smallIconSize = smallSize * 0.55;
     final mainIconSize = mainSize * 0.5;
-    final gapMain = isSmall ? 16.0 : 20.0;
-    final gapSide = isSmall ? 20.0 : 24.0;
+    const gapMain = 22.0;
+    const gapSide = 18.0;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // 播放模式
         PlaybackControlButton(
           icon: widget.playModeIcon,
           size: smallSize,
@@ -316,8 +307,7 @@ class _LandscapeAlbumSectionState extends ConsumerState<LandscapeAlbumSection>
           iconColor: Colors.white.withValues(alpha: 0.7),
           onTap: widget.onPlayModeToggle,
         ),
-        SizedBox(width: gapSide),
-        // 上一曲
+        const SizedBox(width: gapSide),
         PlaybackControlButton(
           icon: Icons.skip_previous,
           size: smallSize,
@@ -325,16 +315,14 @@ class _LandscapeAlbumSectionState extends ConsumerState<LandscapeAlbumSection>
           iconColor: Colors.white.withValues(alpha: 0.9),
           onTap: widget.onPrevious,
         ),
-        SizedBox(width: gapMain),
-        // 播放/暂停
+        const SizedBox(width: gapMain),
         PlaybackPlayPauseButton(
           isPlaying: widget.isPlaying,
           size: mainSize,
           iconSize: mainIconSize,
           onTap: widget.onPlayPause,
         ),
-        SizedBox(width: gapMain),
-        // 下一曲
+        const SizedBox(width: gapMain),
         PlaybackControlButton(
           icon: Icons.skip_next,
           size: smallSize,
@@ -342,8 +330,7 @@ class _LandscapeAlbumSectionState extends ConsumerState<LandscapeAlbumSection>
           iconColor: Colors.white.withValues(alpha: 0.9),
           onTap: widget.onNext,
         ),
-        SizedBox(width: gapSide),
-        // 播放列表
+        const SizedBox(width: gapSide),
         PlaybackControlButton(
           icon: Icons.queue_music,
           size: smallSize,
@@ -354,16 +341,42 @@ class _LandscapeAlbumSectionState extends ConsumerState<LandscapeAlbumSection>
       ],
     );
   }
+
+  Widget _buildLyricsEntry(BuildContext context) {
+    return TapScaleWidget(
+      pressedScale: 0.95,
+      onTap: widget.onShowLyrics,
+      child: Container(
+        margin: const EdgeInsets.only(top: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.12),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.lyrics_outlined,
+              color: Colors.white.withValues(alpha: 0.85),
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '查看歌词',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.9),
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
-
-/// 圆形图标按钮 —— 独立式，半透明白底 + 按压缩放。
-/// 复用见 [lib/components/common/playback_buttons.dart] 中的 [CircleIconButton]。
-
-/// 播放控制小按钮（TapScaleWidget + 图标）。
-/// 复用见 [lib/components/common/playback_buttons.dart] 中的 [PlaybackControlButton]。
-
-/// 主播放/暂停按钮（白色渐变圆形 + AnimatedSwitcher）。
-/// 复用见 [lib/components/common/playback_buttons.dart] 中的 [PlaybackPlayPauseButton]。
-
-/// 全宽度轨道形状 —— 圆角矩形，active 段按 thumbCenter 截断。
-/// 复用见 [lib/components/common/playback_buttons.dart] 中的 [FullWidthTrackShape]。
