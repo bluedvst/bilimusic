@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bilimusic/components/long_press_menu.dart';
 import 'package:bilimusic/models/playlist.dart';
+import 'package:bilimusic/providers/playlist_providers.dart';
 import 'package:bilimusic/theme/app_palette.dart';
+import 'package:super_context_menu/super_context_menu.dart';
 
 /// 横屏模式新侧边栏 - 基于ParticleMusic风格
-class LandscapeSidebar extends StatelessWidget {
+class LandscapeSidebar extends ConsumerWidget {
   final String selectedLabel;
   final List<Playlist> playlists;
   final String? selectedPlaylistId;
@@ -22,7 +26,7 @@ class LandscapeSidebar extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final selectedItemColor = context.appPalette.selectedItem;
 
@@ -103,6 +107,7 @@ class LandscapeSidebar extends StatelessWidget {
                     // 创建的歌单
                     _buildPlaylistSection(
                       context,
+                      ref,
                       colorScheme,
                       selectedItemColor,
                     ),
@@ -128,6 +133,7 @@ class LandscapeSidebar extends StatelessWidget {
 
   Widget _buildPlaylistSection(
     BuildContext context,
+    WidgetRef ref,
     ColorScheme colorScheme,
     Color selectedItemColor,
   ) {
@@ -170,6 +176,17 @@ class LandscapeSidebar extends StatelessWidget {
             textColor: textColor,
             subtitleColor: subtitleColor,
             onTap: () => onPlaylistTap?.call(p.id),
+            contextMenuBuilder: p.isDefault
+                ? null
+                : (_) => buildPlaylistContextMenu(
+                      context: context,
+                      playlist: p,
+                      onDelete: () => confirmAndDeletePlaylist(
+                        context: context,
+                        playlist: p,
+                        commands: ref.read(playlistCommandsProvider.notifier),
+                      ),
+                    ),
           ),
         ),
         if (playlists.isEmpty)
@@ -264,6 +281,7 @@ class _PlaylistItem extends StatelessWidget {
   final Color selectedItemColor;
   final Color textColor;
   final Color subtitleColor;
+  final MenuProvider? contextMenuBuilder;
 
   const _PlaylistItem({
     required this.title,
@@ -273,13 +291,14 @@ class _PlaylistItem extends StatelessWidget {
     required this.selectedItemColor,
     required this.textColor,
     required this.subtitleColor,
+    this.contextMenuBuilder,
   });
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Padding(
+    final inner = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 1),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
@@ -332,5 +351,8 @@ class _PlaylistItem extends StatelessWidget {
         ),
       ),
     );
+
+    if (contextMenuBuilder == null) return inner;
+    return ContextMenuWidget(menuProvider: contextMenuBuilder!, child: inner);
   }
 }

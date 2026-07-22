@@ -5,6 +5,7 @@ import 'package:bilimusic/services/player_coordinator.dart';
 import 'package:bilimusic/managers/playlist_manager.dart';
 import 'package:bilimusic/models/music.dart';
 import 'package:bilimusic/models/playlist.dart';
+import 'package:bilimusic/providers/playlist_providers.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:super_context_menu/super_context_menu.dart';
 
@@ -238,4 +239,57 @@ void _createNewPlaylist(BuildContext context, PlaylistManager playlistManager) {
       );
     },
   ).then((_) => controller.dispose());
+}
+
+/// 长按歌单列表项时弹出的上下文菜单。
+/// 调用方应在用户歌单(非系统歌单)上调用;系统歌单无需包裹 ContextMenuWidget。
+Menu buildPlaylistContextMenu({
+  required BuildContext context,
+  required Playlist playlist,
+  required VoidCallback onDelete,
+}) {
+  return Menu(
+    children: [
+      MenuAction(
+        title: '删除歌单',
+        image: MenuImage.icon(Icons.delete_outline),
+        attributes: const MenuActionAttributes(destructive: true),
+        callback: onDelete,
+      ),
+    ],
+  );
+}
+
+/// 弹出确认对话框,确认后调用 [commands] 删除歌单并提示 SnackBar。
+/// 三个调用点复用,避免重复实现 AlertDialog 样板。
+Future<void> confirmAndDeletePlaylist({
+  required BuildContext context,
+  required Playlist playlist,
+  required PlaylistCommands commands,
+}) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('确认删除'),
+      content: Text('确定要删除歌单"${playlist.name}"吗?此操作不可撤销'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('取消'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('删除'),
+        ),
+      ],
+    ),
+  );
+  if (confirmed != true) return;
+  final name = playlist.name;
+  await commands.deletePlaylist(playlist.id);
+  if (context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('已删除歌单"$name"')),
+    );
+  }
 }
