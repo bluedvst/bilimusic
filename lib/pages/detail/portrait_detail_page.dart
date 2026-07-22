@@ -137,13 +137,15 @@ class _PortraitDetailPageState extends ConsumerState<PortraitDetailPage> {
         ),
         if (widget.music.coverUrl.isNotEmpty)
           Positioned.fill(
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
-              child: CachedNetworkImage(
-                imageUrl: widget.music.coverUrl,
-                fit: BoxFit.cover,
-                color: Colors.black.withValues(alpha: 0.3),
-                colorBlendMode: BlendMode.darken,
+            child: RepaintBoundary(
+              child: ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
+                child: CachedNetworkImage(
+                  imageUrl: widget.music.coverUrl,
+                  fit: BoxFit.cover,
+                  color: Colors.black.withValues(alpha: 0.3),
+                  colorBlendMode: BlendMode.darken,
+                ),
               ),
             ),
           ),

@@ -1,27 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:bilimusic/models/music.dart';
+
 import 'package:bilimusic/providers/playlist_providers.dart';
 import 'package:bilimusic/providers/playback_providers.dart';
-import 'package:bilimusic/providers/settings_provider.dart';
 import 'package:bilimusic/components/mini_player_bar.dart';
 import 'package:bilimusic/components/desktop_window_controls.dart';
-import 'package:bilimusic/components/common/background_blur_widget.dart';
 import 'package:bilimusic/shells/shell_page_manager.dart';
+import 'package:bilimusic/shells/shell_widgets.dart';
 import 'package:bilimusic/pages/home_page.dart';
-import 'package:bilimusic/pages/search/search_overlay.dart';
-import 'package:bilimusic/pages/search/search_results_overlay.dart';
-import 'package:bilimusic/pages/profile_page.dart';
-import 'package:bilimusic/pages/settings_page.dart';
-import 'package:bilimusic/pages/detail_page.dart';
-import 'package:bilimusic/pages/playlist_page.dart';
-import 'package:bilimusic/pages/changelog_page.dart';
-import 'package:bilimusic/pages/cookie_page.dart';
-import 'package:bilimusic/pages/data_management_page.dart';
-import 'package:bilimusic/pages/data_migration_page.dart';
-import 'package:bilimusic/pages/login_page.dart';
-import 'package:bilimusic/pages/fav_import_page.dart';
-import 'package:bilimusic/pages/roam_onboarding/roam_onboarding_page.dart';
 
 /// 竖屏模式外壳 - 包含平板模式和手机模式布局
 /// 平板：NavigationRail + 主内容 + 迷你播放器
@@ -52,54 +38,22 @@ class PortraitShell extends ConsumerWidget {
     }
   }
 
-  /// 主内容渲染
-  Widget _buildPageContent(ShellPage page) {
-    switch (page) {
-      case ShellPage.home:
-        return const HomePage();
-      case ShellPage.search:
-        return const SearchOverlay();
-      case ShellPage.searchResults:
-        final query = pageManager.getArgs<String>('query') ?? '';
-        return SearchResultsOverlay(query: query);
-      case ShellPage.profile:
-        return const ProfilePage();
-      case ShellPage.settings:
-        return const SettingsPage();
-      case ShellPage.detail:
-        return const DetailPage();
-      case ShellPage.playlist:
-        final playlistId = pageManager.getArgs<String>('playlistId');
-        final songs = pageManager.getArgs<List<Music>>('songs');
-        final playlistName = pageManager.getArgs<String>('playlistName');
-        return PlaylistPage(
-          playlistId: playlistId,
-          songs: songs,
-          playlistName: playlistName,
-        );
-      case ShellPage.changelog:
-        return const ChangelogPage();
-      case ShellPage.cookie:
-        return const CookiePage();
-      case ShellPage.dataManagement:
-        return const DataManagementPage();
-      case ShellPage.dataMigration:
-        return const DataMigrationPage();
-      case ShellPage.favImport:
-        return const FavImportPage();
-      case ShellPage.login:
-        return LoginPage();
-      case ShellPage.roamOnboarding:
-        return const RoamOnboardingPage();
-    }
-  }
-
   /// 是否显示底部导航栏
   bool get _showBottomBar {
     return currentPage == ShellPage.home ||
         currentPage == ShellPage.search ||
         currentPage == ShellPage.profile ||
         currentPage == ShellPage.settings;
+  }
+
+  ShellPage get _basePage => pageManager.basePage;
+
+  Widget _buildPageContent(ShellPage page) {
+    return buildShellPageContent(
+      page: page,
+      pageManager: pageManager,
+      homePage: const HomePage(),
+    );
   }
 
   /// 平板模式布局
@@ -121,36 +75,18 @@ class PortraitShell extends ConsumerWidget {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          _buildBackground(context, ref),
+          buildShellBackground(context, ref),
           Row(
             children: [
               Expanded(
                 child: Stack(
                   children: [
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 300),
-                      switchInCurve: Curves.easeOut,
-                      switchOutCurve: Curves.easeIn,
-                      transitionBuilder: (child, animation) {
-                        return FadeTransition(
-                          opacity: animation,
-                          child: SlideTransition(
-                            position:
-                                Tween<Offset>(
-                                  begin: const Offset(0.03, 0),
-                                  end: Offset.zero,
-                                ).animate(
-                                  CurvedAnimation(
-                                    parent: animation,
-                                    curve: Curves.easeOutCubic,
-                                  ),
-                                ),
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: _buildPageContent(currentPage),
+                    shellPageSwitcher(
+                      key: ValueKey(_basePage),
+                      child: _buildPageContent(_basePage),
                     ),
+                    // 详情页独立动画层（与底层切换完全解耦）
+                    buildShellDetailLayer(currentPage: currentPage),
                     if (_showBottomBar)
                       Positioned(
                         left: 0,
@@ -196,31 +132,13 @@ class PortraitShell extends ConsumerWidget {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          _buildBackground(context, ref),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            switchInCurve: Curves.easeOut,
-            switchOutCurve: Curves.easeIn,
-            transitionBuilder: (child, animation) {
-              return FadeTransition(
-                opacity: animation,
-                child: SlideTransition(
-                  position:
-                      Tween<Offset>(
-                        begin: const Offset(0.03, 0),
-                        end: Offset.zero,
-                      ).animate(
-                        CurvedAnimation(
-                          parent: animation,
-                          curve: Curves.easeOutCubic,
-                        ),
-                      ),
-                  child: child,
-                ),
-              );
-            },
-            child: _buildPageContent(currentPage),
+          buildShellBackground(context, ref),
+          shellPageSwitcher(
+            key: ValueKey(_basePage),
+            child: _buildPageContent(_basePage),
           ),
+          // 详情页独立动画层（与底层切换完全解耦）
+          buildShellDetailLayer(currentPage: currentPage),
           // 悬浮迷你播放器
           if (_showBottomBar)
             Positioned(
@@ -280,21 +198,6 @@ class PortraitShell extends ConsumerWidget {
               ),
             )
           : null,
-    );
-  }
-
-  /// 背景模糊效果
-  Widget _buildBackground(BuildContext context, WidgetRef ref) {
-    if (ref.watch(settingsProvider).fluidBackground == false) {
-      return Container(color: Theme.of(context).colorScheme.surface);
-    }
-    final currentMusic = ref.watch(currentMusicProvider);
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 400),
-      child: BackgroundBlurWidget(
-        key: ValueKey(currentMusic?.coverUrl),
-        coverUrl: currentMusic?.coverUrl,
-      ),
     );
   }
 }

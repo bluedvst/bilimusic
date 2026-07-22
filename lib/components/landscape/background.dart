@@ -56,16 +56,18 @@ class LandscapeBackground extends StatelessWidget {
   /// 构建封面图片模糊背景
   Widget _buildBlurredCover() {
     return Positioned.fill(
-      child: ImageFiltered(
-        imageFilter: ImageFilter.blur(
-          sigmaX: AppTokens.heavyGlassBlurSigma,
-          sigmaY: AppTokens.heavyGlassBlurSigma,
-        ),
-        child: CachedNetworkImage(
-          imageUrl: coverUrl,
-          fit: BoxFit.cover,
-          color: Colors.black.withValues(alpha: 0.4),
-          colorBlendMode: BlendMode.darken,
+      child: RepaintBoundary(
+        child: ImageFiltered(
+          imageFilter: ImageFilter.blur(
+            sigmaX: AppTokens.heavyGlassBlurSigma,
+            sigmaY: AppTokens.heavyGlassBlurSigma,
+          ),
+          child: CachedNetworkImage(
+            imageUrl: coverUrl,
+            fit: BoxFit.cover,
+            color: Colors.black.withValues(alpha: 0.4),
+            colorBlendMode: BlendMode.darken,
+          ),
         ),
       ),
     );
@@ -187,19 +189,21 @@ class _AnimatedLandscapeBackgroundState
             // 封面图片模糊背景
             if (widget.coverUrl.isNotEmpty)
               Positioned.fill(
-                child: ImageFiltered(
-                  imageFilter: ImageFilter.blur(
-                    sigmaX: AppTokens.heavyGlassBlurSigma,
-                    sigmaY: AppTokens.heavyGlassBlurSigma,
-                  ),
-                  child: Opacity(
-                    opacity: _opacityAnimation.value,
-                    child: CachedNetworkImage(
-                      imageUrl: widget.coverUrl,
-                      fit: BoxFit.cover,
-                      color: Colors.black.withValues(alpha: 0.4),
-                      colorBlendMode: BlendMode.darken,
-                      cacheManager: imageCacheManager,
+                child: RepaintBoundary(
+                  child: ImageFiltered(
+                    imageFilter: ImageFilter.blur(
+                      sigmaX: AppTokens.heavyGlassBlurSigma,
+                      sigmaY: AppTokens.heavyGlassBlurSigma,
+                    ),
+                    child: Opacity(
+                      opacity: _opacityAnimation.value,
+                      child: CachedNetworkImage(
+                        imageUrl: widget.coverUrl,
+                        fit: BoxFit.cover,
+                        color: Colors.black.withValues(alpha: 0.4),
+                        colorBlendMode: BlendMode.darken,
+                        cacheManager: imageCacheManager,
+                      ),
                     ),
                   ),
                 ),

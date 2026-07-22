@@ -29,6 +29,16 @@ class ShellPageManager extends ChangeNotifier {
   ShellPage get currentPage => _pageStack.last;
   bool get canPop => _pageStack.length > 1;
 
+  /// 栈中最后一个非 detail 的页面，作为 PortraitShell 底层主内容的目标。
+  /// 当栈顶是 detail 时，详情页作为独立动画层叠在上面，底层继续显示 basePage，
+  /// 这样 detail 的进入/离开不会和底层横滑过渡相互打架。
+  ShellPage get basePage {
+    for (var i = _pageStack.length - 1; i >= 0; i--) {
+      if (_pageStack[i] != ShellPage.detail) return _pageStack[i];
+    }
+    return ShellPage.home;
+  }
+
   int get selectedTabIndex {
     switch (_pageStack.last) {
       case ShellPage.home:

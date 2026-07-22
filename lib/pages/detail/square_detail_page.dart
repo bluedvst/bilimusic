@@ -156,13 +156,15 @@ class SquareDetailPage extends ConsumerWidget {
         ),
         if (music.coverUrl.isNotEmpty)
           Positioned.fill(
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
-              child: CachedNetworkImage(
-                imageUrl: music.coverUrl,
-                fit: BoxFit.cover,
-                color: Colors.black.withValues(alpha: 0.3),
-                colorBlendMode: BlendMode.darken,
+            child: RepaintBoundary(
+              child: ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
+                child: CachedNetworkImage(
+                  imageUrl: music.coverUrl,
+                  fit: BoxFit.cover,
+                  color: Colors.black.withValues(alpha: 0.3),
+                  colorBlendMode: BlendMode.darken,
+                ),
               ),
             ),
           ),
