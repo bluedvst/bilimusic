@@ -119,14 +119,17 @@ class _MiniPlayerBarState extends ConsumerState<MiniPlayerBar>
       if (details.delta.dy.abs() > 1 &&
           details.delta.dy.abs() > details.delta.dx.abs()) {
         _isVerticalSwipe = true;
-        return;
-      }
-      if (details.delta.dx.abs() > 1) {
+      } else if (details.delta.dx.abs() > 1) {
         _isDragging = true;
       }
     }
 
-    if (_isVerticalSwipe) return;
+    if (_isVerticalSwipe) {
+      setState(() {
+        _dragY += details.delta.dy;
+      });
+      return;
+    }
 
     if (_isDragging) {
       setState(() {
