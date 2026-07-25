@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:bilimusic/components/lyric/lyric_source.dart';
+import 'package:bilimusic/components/playlist/playlist_sheet.dart';
 import 'package:bilimusic/core/app_providers.dart';
 import 'package:bilimusic/models/music.dart' as model;
 import 'package:bilimusic/models/player_state.dart';
@@ -185,6 +186,20 @@ class _DetailPageState extends ConsumerState<DetailPage> {
     setState(() => _showLyrics = !_showLyrics);
   }
 
+  void _showPlaylist() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => PlaylistSheet(
+        onTrackSelect: (index) {
+          ref.read(playbackCommandsProvider.notifier).playAtIndex(index);
+          Navigator.pop(context);
+        },
+      ),
+    );
+  }
+
   void _seek(Duration duration) {
     ref.read(playbackCommandsProvider.notifier).seek(duration);
   }
@@ -267,9 +282,11 @@ class _DetailPageState extends ConsumerState<DetailPage> {
       onShare: _shareMusic,
       onTogglePlay: _togglePlay,
       onToggleShowLyrics: _toggleShowLyrics,
+      onPlaylist: _showPlaylist,
       onLoadLyric: _loadLyric,
       onSeek: _seek,
-      onTogglePlayMode: togglePlayMode,
-    );
+       onTogglePlayMode: togglePlayMode,
+     );
   }
 }
+

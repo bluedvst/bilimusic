@@ -31,6 +31,7 @@ class PortraitDetailPage extends ConsumerStatefulWidget {
   final VoidCallback onShare;
   final VoidCallback onTogglePlay;
   final VoidCallback onToggleShowLyrics;
+  final VoidCallback onPlaylist;
   final Function(String) onLoadLyric;
   final Function(Duration) onSeek;
   final VoidCallback onTogglePlayMode;
@@ -53,6 +54,7 @@ class PortraitDetailPage extends ConsumerStatefulWidget {
     required this.onShare,
     required this.onTogglePlay,
     required this.onToggleShowLyrics,
+    required this.onPlaylist,
     required this.onLoadLyric,
     required this.onSeek,
     required this.onTogglePlayMode,
@@ -186,7 +188,7 @@ class _PortraitDetailPageState extends ConsumerState<PortraitDetailPage> {
               onNext: () =>
                   ref.read(playbackCommandsProvider.notifier).playNext(),
               onPlayModeToggle: widget.onTogglePlayMode,
-              onPlaylist: widget.onToggleShowLyrics,
+              onPlaylist: widget.onPlaylist,
               onShowLyrics: widget.onToggleShowLyrics,
             ),
             const SizedBox(height: 16),
