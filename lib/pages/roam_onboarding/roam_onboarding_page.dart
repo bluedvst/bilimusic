@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -44,7 +45,9 @@ class RoamOnboardingPage extends ConsumerWidget {
           icon: const Icon(Icons.close),
           onPressed: () => ShellPageManager.instance.pop(),
         ),
+        backgroundColor: Colors.transparent,
       ),
+      backgroundColor: Colors.transparent,
       body: PopScope(
         canPop: state.step != OnboardingStep.finalLoading,
         child: SafeArea(
@@ -209,6 +212,13 @@ class _SeedStep extends ConsumerStatefulWidget {
 class _SeedStepState extends ConsumerState<_SeedStep> {
   late final PageController _pageController;
 
+  /// 滚轮累计位移（避免一次微动就误触切页）。
+  double _accumulatedScroll = 0;
+
+  /// 累计阈值：约 2.5 次鼠标滚轮刻度（≈250 logical px）的 80%，
+  /// 既能屏蔽触控板抖动能被切页，又能保证一次滚轮明确触发一次切页。
+  static const double _scrollThreshold = 200.0;
+
   @override
   void initState() {
     super.initState();
@@ -221,11 +231,46 @@ class _SeedStepState extends ConsumerState<_SeedStep> {
     super.dispose();
   }
 
+  /// 桌面端滚轮 = 切轮次（PageView 本身不响应 wheel）。
+  ///
+  /// 累计纵向位移超过 [_scrollThreshold] 才触发一次切页，并清零。
+  /// 阈值之内反向滚动会自然把累计值拉回零（用户改主意）。
+  void _onPointerSignal(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent) return;
+    if (!_pageController.hasClients) return;
+    final state = ref.read(roamOnboardingProvider);
+    if (state.roundsCount <= 1) return;
+    final delta = event.scrollDelta.dy;
+    if (delta == 0) return;
+
+    _accumulatedScroll += delta;
+    if (_accumulatedScroll.abs() < _scrollThreshold) return;
+
+    final forward = _accumulatedScroll > 0;
+    _accumulatedScroll = 0;
+
+    if (forward) {
+      if (state.currentSectionIndex >= state.roundsCount - 1) return;
+      _pageController.nextPage(
+        duration: AppTokens.standardDuration,
+        curve: AppTokens.standardEasing,
+      );
+    } else {
+      if (state.currentSectionIndex <= 0) return;
+      _pageController.previousPage(
+        duration: AppTokens.standardDuration,
+        curve: AppTokens.standardEasing,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // 同步外部 currentSectionIndex 变化（如 dot indicator 点击）
+    // 同步外部 currentSectionIndex 变化（如 dot indicator / 箭头按钮点击）
     ref.listen<OnboardingState>(roamOnboardingProvider, (prev, next) {
       if (prev?.currentSectionIndex != next.currentSectionIndex) {
+        // 外部触发的切页要把累计量清零，否则下一次滚轮可能直接再翻一次。
+        _accumulatedScroll = 0;
         if (_pageController.hasClients) {
           _pageController.animateToPage(
             next.currentSectionIndex,
@@ -238,6 +283,7 @@ class _SeedStepState extends ConsumerState<_SeedStep> {
 
     final state = ref.watch(roamOnboardingProvider);
     final notifier = ref.read(roamOnboardingProvider.notifier);
+    final showArrows = state.roundsCount > 1;
 
     return Column(
       children: [
@@ -267,18 +313,92 @@ class _SeedStepState extends ConsumerState<_SeedStep> {
             ],
           ),
         ),
-        // PageView
+        // PageView（外层包 Listener 接 wheel，Stack 叠左右箭头按钮）
         Expanded(
-          child: PageView.builder(
-            controller: _pageController,
-            onPageChanged: (i) => notifier.setSectionIndex(i),
-            itemCount: state.roundsCount,
-            itemBuilder: (_, round) => _RoundPage(round: round),
+          child: Listener(
+            onPointerSignal: _onPointerSignal,
+            child: Stack(
+              children: [
+                PageView.builder(
+                  controller: _pageController,
+                  onPageChanged: (i) => notifier.setSectionIndex(i),
+                  itemCount: state.roundsCount,
+                  itemBuilder: (_, round) => _RoundPage(round: round),
+                ),
+                if (showArrows) ...[
+                  _PageArrowButton(
+                    direction: _ArrowDirection.prev,
+                    enabled: state.currentSectionIndex > 0,
+                    onPressed: () => _pageController.previousPage(
+                      duration: AppTokens.standardDuration,
+                      curve: AppTokens.standardEasing,
+                    ),
+                  ),
+                  _PageArrowButton(
+                    direction: _ArrowDirection.next,
+                    enabled:
+                        state.currentSectionIndex < state.roundsCount - 1,
+                    onPressed: () => _pageController.nextPage(
+                      duration: AppTokens.standardDuration,
+                      curve: AppTokens.standardEasing,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
         // dot indicator + 继续按钮
         _SeedBottomBar(),
       ],
+    );
+  }
+}
+
+enum _ArrowDirection { prev, next }
+
+/// PageView 左右浮动的圆形箭头按钮（桌面端 / 多页时使用）。
+class _PageArrowButton extends StatelessWidget {
+  const _PageArrowButton({
+    required this.direction,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  final _ArrowDirection direction;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isPrev = direction == _ArrowDirection.prev;
+    return Positioned(
+      left: isPrev ? 8 : null,
+      right: isPrev ? null : 8,
+      top: 0,
+      bottom: 0,
+      child: Center(
+        child: Material(
+          color: theme.colorScheme.surface.withValues(alpha: 0.75),
+          shape: const CircleBorder(),
+          elevation: 2,
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: enabled ? onPressed : null,
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Icon(
+                isPrev ? Icons.chevron_left : Icons.chevron_right,
+                size: 24,
+                color: enabled
+                    ? theme.colorScheme.onSurface
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.3),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -379,11 +499,19 @@ class _SeedBottomBar extends ConsumerWidget {
   }
 }
 
-/// Apple 风格的小提示徽章：左右滑动切换轮次。
+/// 切换轮次的小提示徽章：桌面端用滚轮，移动端用滑动。
 class _SwipeHint extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final platform = theme.platform;
+    final isDesktop = platform == TargetPlatform.macOS ||
+        platform == TargetPlatform.windows ||
+        platform == TargetPlatform.linux;
+    final message = isDesktop
+        ? '滚动鼠标滚轮切换轮次 · 点击卡片换种子'
+        : '左右滑动切换轮次 · 点击卡片换种子';
+    final iconData = isDesktop ? Icons.mouse : Icons.swipe;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -394,13 +522,13 @@ class _SwipeHint extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.swipe,
+            iconData,
             size: 14,
             color: theme.colorScheme.onPrimaryContainer,
           ),
           const SizedBox(width: 6),
           Text(
-            '左右滑动切换轮次 · 点击卡片换种子',
+            message,
             style: theme.textTheme.labelSmall?.copyWith(
               color: theme.colorScheme.onPrimaryContainer,
               fontWeight: FontWeight.w500,
