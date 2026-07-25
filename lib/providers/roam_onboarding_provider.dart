@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bilimusic/core/app_providers.dart';
 import 'package:bilimusic/managers/settings_manager.dart';
 import 'package:bilimusic/models/music.dart';
+import 'package:bilimusic/models/roam_config.dart';
 import 'package:bilimusic/models/roam_style.dart';
 import 'package:bilimusic/services/player_coordinator.dart';
 import 'package:bilimusic/services/playlist_service.dart';
@@ -387,7 +388,8 @@ class RoamOnboardingNotifier extends Notifier<OnboardingState> {
     final playlistId = state.playlistId;
     final seeds = state.userPicks.whereType<Music>().toList();
     final style = state.style;
-    if (playlistId == null || seeds.isEmpty) return;
+    if (seeds.isEmpty) return;
+    if (playlistId == null) return;
 
     try {
       await _coordinator.applyRoamPlaylist(
@@ -400,6 +402,79 @@ class RoamOnboardingNotifier extends Notifier<OnboardingState> {
         step: OnboardingStep.error,
         isLoading: false,
         error: '应用失败: $e',
+      );
+    }
+  }
+
+  // ─────────────── 导入配置入口 ───────────────
+
+  /// 导入 [RoamConfig] 后直接进入 finalLoading → done → apply 的标准流程。
+  ///
+  /// 跳过 A→D 的交互步骤，但保留 shuffle、阈值校验、错误页等一致性约束。
+  /// 不持有源歌单 ID：[_PlayingStep] 仅展示已生成曲数 + 风格。
+  Future<void> importConfig(RoamConfig config) async {
+    if (_disposed) return;
+
+    state = state.copyWith(
+      step: OnboardingStep.finalLoading,
+      isLoading: true,
+      statusMessage: '正在为你生成歌单...',
+      retryCount: 0,
+      error: null,
+    );
+
+    if (_disposed) return;
+
+    try {
+      final seeds = await Future.wait(
+        config.seeds.map(_roamingService.resolveSeed),
+      );
+      if (_disposed) return;
+
+      final recs = await _roamingService.fetchMultiSeed(
+        seeds: seeds,
+        style: config.style,
+        totalSize: 6,
+      );
+      if (_disposed) return;
+
+      final minThreshold = (6 * 0.5).ceil();
+      if (recs.length < minThreshold) {
+        state = state.copyWith(
+          step: OnboardingStep.error,
+          isLoading: false,
+          statusMessage: null,
+          error: '推荐不足，请稍后重试（${recs.length} / 6）',
+        );
+        return;
+      }
+
+      final all = <Music>[...seeds, ...recs]..shuffle(_random);
+
+      state = state.copyWith(
+        step: OnboardingStep.done,
+        finalPlaylist: all,
+        isLoading: false,
+        statusMessage: null,
+        style: config.style,
+        playlistId: '',
+        playlistName: '导入配置',
+        userPicks: seeds,
+        roundOptions: const [],
+        selectedSeedIndex: const [],
+        tempQueue: const [],
+        mode: RoamMode.normal,
+        candidateCount: 3,
+        recsCount: 6,
+        currentSectionIndex: 0,
+      );
+    } catch (e) {
+      if (_disposed) return;
+      state = state.copyWith(
+        step: OnboardingStep.error,
+        isLoading: false,
+        statusMessage: null,
+        error: '导入失败: $e',
       );
     }
   }

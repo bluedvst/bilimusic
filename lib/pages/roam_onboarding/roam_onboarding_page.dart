@@ -2,14 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:bilimusic/components/common/roam_style_segmented.dart';
-import 'package:bilimusic/core/app_providers.dart';
 import 'package:bilimusic/models/roam_style.dart';
 import 'package:bilimusic/pages/roam_onboarding/widgets/import_config_dialog.dart';
 import 'package:bilimusic/pages/roam_onboarding/widgets/roam_playlist_picker.dart';
 import 'package:bilimusic/pages/roam_onboarding/widgets/seed_card.dart';
 import 'package:bilimusic/providers/roam_onboarding_provider.dart';
-import 'package:bilimusic/services/player_coordinator.dart';
-import 'package:bilimusic/services/roaming_service.dart';
 import 'package:bilimusic/shells/shell_page_manager.dart';
 import 'package:bilimusic/theme/app_palette.dart';
 import 'package:bilimusic/theme/app_tokens.dart';
@@ -112,54 +109,9 @@ class _PlaylistStepState extends ConsumerState<_PlaylistStep> {
     if (config == null) return;
     if (!mounted) return;
 
-    // 屏蔽背景交互的加载层
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
-
-    final PlayerCoordinator coordinator;
-    final RoamingService roaming;
-    try {
-      coordinator = ref.read(playerCoordinatorProvider);
-      roaming = ref.read(roamingServiceProvider);
-
-      // 1. 把 bvid 还原成完整的 Music，验证视频仍可访问
-      final seeds = await Future.wait(
-        config.seeds.map(roaming.resolveSeed),
-      );
-
-      // 2. 预取一批推荐，确保初始队列饱满
-      final recs = await roaming.fetchMultiSeed(
-        seeds: seeds,
-        style: config.style,
-        totalSize: 6,
-      );
-
-      // 3. 应用
-      await coordinator.applyRoamPlaylist(
-        songs: [...seeds, ...recs],
-        style: config.style,
-        seeds: seeds,
-      );
-    } catch (e) {
-      if (mounted && Navigator.of(context).canPop()) {
-        Navigator.of(context).pop();
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('导入失败: $e')),
-        );
-      }
-      return;
-    }
-
-    // 成功路径：关闭加载层 + 退出 onboarding 页
-    if (mounted && Navigator.of(context).canPop()) {
-      Navigator.of(context).pop();
-    }
-    ShellPageManager.instance.pop();
+    // 复用正常流程：finalLoading → done → apply → _PlayingStep，
+    // 由 step=done 监听自动触发 apply；不在此处手动 pop。
+    await ref.read(roamOnboardingProvider.notifier).importConfig(config);
   }
 
   @override
