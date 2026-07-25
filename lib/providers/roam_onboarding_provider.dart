@@ -393,7 +393,6 @@ class RoamOnboardingNotifier extends Notifier<OnboardingState> {
       await _coordinator.applyRoamPlaylist(
         songs: playlist,
         style: style,
-        playlistId: playlistId,
         seeds: seeds,
       );
     } catch (e) {

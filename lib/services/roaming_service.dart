@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import 'package:bilimusic/api/bili_client.dart';
 import 'package:bilimusic/api/bili_exception.dart';
+import 'package:bilimusic/models/bili_item.dart';
 import 'package:bilimusic/models/music.dart';
 import 'package:bilimusic/models/roam_style.dart';
 import 'package:bilimusic/services/playlist_service.dart';
@@ -194,5 +195,28 @@ class RoamingService {
       if (seen.add(key)) out.add(m);
     }
     return out;
+  }
+
+  /// 把 bvid 解析回完整的 [Music]。
+  ///
+  /// 仅用于导入流程：先用此方法验证种子视频仍可访问，再决定是否走
+  /// [fetchMultiSeed]（否则视频已失效/删除时 recs 会一连串失败，错误信息
+  /// 也很难定位根因）。
+  ///
+  /// 总是返回第一个分 P（导出的种子 cid 为空，page 索引足以覆盖大部分场景）。
+  /// 视频整体不可访问时抛 [BiliException]，由调用方决定如何展示给用户。
+  Future<Music> resolveSeed(String bvid) async {
+    final data = await _client.get(
+      '/x/web-interface/view',
+      query: {'bvid': bvid},
+    );
+    if (data is! Map<String, dynamic>) {
+      throw BiliApiException(-1, '无效的视频详情响应: $bvid');
+    }
+    final biliItem = BiliItem.fromViewApi(data);
+    if (biliItem.pages.isEmpty) {
+      throw BiliApiException(-1, '视频无可用分P: $bvid');
+    }
+    return biliItem.pages.first;
   }
 }

@@ -17,13 +17,11 @@ import 'package:bilimusic/managers/settings_manager.dart';
 /// 与 [PlayMode] 完全正交——roam 期间 PlayMode 不变（用户可继续按 sequential/
 /// shuffle 播）。退出 roam 只清空本会话，队列保留。
 class _RoamSession {
-  final String playlistId;
   final RoamStyle style;
   final int refillThreshold;
   final List<Music> seeds;
 
   const _RoamSession({
-    required this.playlistId,
     required this.style,
     required this.refillThreshold,
     this.seeds = const [],
@@ -654,7 +652,6 @@ class PlayerCoordinator {
     _playlistService.setCurrentIndex(0);
 
     _roamSession = _RoamSession(
-      playlistId: playlistId,
       style: style,
       refillThreshold: _settingsManager.roamRefillThreshold,
       seeds: seeds,
@@ -672,7 +669,6 @@ class PlayerCoordinator {
   Future<void> applyRoamPlaylist({
     required List<Music> songs,
     required RoamStyle style,
-    required String playlistId,
     required List<Music> seeds,
   }) async {
     // 先停掉当前播放（防 crossfade 残留状态污染新队列）
@@ -690,7 +686,6 @@ class PlayerCoordinator {
     _playlistService.setCurrentIndex(0);
 
     _roamSession = _RoamSession(
-      playlistId: playlistId,
       style: style,
       refillThreshold: _settingsManager.roamRefillThreshold,
       seeds: seeds,
@@ -852,11 +847,11 @@ class PlayerCoordinator {
   /// 当前是否处于漫游模式。
   bool get isRoaming => _roamSession != null;
 
-  /// 当前漫游会话的源歌单 ID（仅当 [isRoaming] 为 true 时有意义）。
-  String? get roamPlaylistId => _roamSession?.playlistId;
-
   /// 当前漫游会话的风格档位。
   RoamStyle? get roamStyle => _roamSession?.style;
+
+  /// 当前漫游会话的续杯阈值（仅当 [isRoaming] 为 true 时有意义）。
+  int? get roamRefillThreshold => _roamSession?.refillThreshold;
 
   /// 当前漫游会话的用户挑选种子（1 颗 lowData / 3 颗 normal）。
   ///
