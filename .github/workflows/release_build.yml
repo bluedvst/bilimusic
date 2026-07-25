@@ -183,8 +183,10 @@ jobs:
 
       - name: Build Web
         if: matrix.name == 'web'
-        run: flutter build web --base-href=/FlutterHub/
-
+        run: |
+          dart run sqflite_common_ffi_web:setup --force 
+          flutter build web
+      
       - name: Build Linux
         if: matrix.name == 'linux'
         run: |
