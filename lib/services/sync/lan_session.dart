@@ -166,9 +166,17 @@ class LanSession {
     if (kDebugMode) {
       debugPrint('LanSession socket error: $error');
     }
+    // Socket errors are terminal for this session. Close it immediately so
+    // the heartbeat does not continue writing to a reset connection.
+    unawaited(close());
   }
 
   void _onDone() {
+    _pingTimer?.cancel();
+    _pingTimer = null;
+    _pongWatchdog?.cancel();
+    _pongWatchdog = null;
+    _socket = null;
     _setState(LanSessionState.closed);
   }
 
