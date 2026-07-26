@@ -30,6 +30,7 @@ class _SearchResultsOverlayState extends ConsumerState<SearchResultsOverlay> {
   SearchResultType _selectedType = SearchResultType.video;
   List<SearchResultType> _availableTypes = [];
   bool _isLoading = false;
+  bool _hasSearched = false;
   String? _errorMessage;
 
   // 分P加载状态
@@ -81,6 +82,7 @@ class _SearchResultsOverlayState extends ConsumerState<SearchResultsOverlay> {
 
     setState(() {
       _isLoading = false;
+      _hasSearched = true;
       if (response.results.isEmpty) {
         _errorMessage = '没有搜索到任何结果';
         _allResults = [];
@@ -167,10 +169,10 @@ class _SearchResultsOverlayState extends ConsumerState<SearchResultsOverlay> {
         child: CustomScrollView(
           slivers: [
             _buildAppBar(context, screenSize),
-            if (_allResults.isEmpty && !_isLoading)
-              _buildInitialContent(context, screenSize)
-            else if (_isLoading)
+            if (_isLoading)
               _buildLoadingContent()
+            else if (!_hasSearched)
+              _buildInitialContent(context, screenSize)
             else if (_filteredResults.isEmpty)
               _buildEmptyContent()
             else
@@ -262,9 +264,7 @@ class _SearchResultsOverlayState extends ConsumerState<SearchResultsOverlay> {
     return SliverFillRemaining(
       hasScrollBody: false,
       child: SearchEmptyState(
-        type: _errorMessage == null
-            ? EmptyStateType.initial
-            : EmptyStateType.noResults,
+        type: EmptyStateType.noResults,
         customMessage: _errorMessage ?? '没有找到相关结果',
       ),
     );

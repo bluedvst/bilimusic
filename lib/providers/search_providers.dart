@@ -19,9 +19,10 @@ class SearchStateNotifier extends Notifier<SearchState> {
   SearchState build() => const SearchState();
 
   void setQuery(String query) {
-    if (state.query != query) {
-      state = SearchState(query: query, shouldSearch: query.isNotEmpty);
-    }
+    // Always re-arm shouldSearch: even when the query is unchanged (e.g. the
+    // user resubmits the same text after markSearched() flipped it to false),
+    // this call must signal "run a search now" so the listener fires.
+    state = SearchState(query: query, shouldSearch: query.isNotEmpty);
   }
 
   void clear() {
