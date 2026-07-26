@@ -230,12 +230,12 @@ class LandscapeBreakpoints {
     return size.height >= size.width || size.width < tabletLandscapeMin;
   }
 
-  /// 获取横屏封面尺寸
+  /// 获取横屏封面尺寸（Apple Music 风格小封面）
   static double getCoverSize(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    if (width >= desktopMin) return 340;
-    if (width >= largeTabletMin) return 300;
-    return 260;
+    if (width >= desktopMin) return 260;
+    if (width >= largeTabletMin) return 240;
+    return 200;
   }
 
   /// 获取横屏控制条高度
@@ -245,34 +245,36 @@ class LandscapeBreakpoints {
     return 160; // 移动横屏端需要控制按钮大一些
   }
 
-  /// 获取横屏歌词当前行字号
+  /// 获取横屏歌词当前行字号（Apple Music 风格大字）
   static double getCurrentLyricFontSize(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    if (width >= desktopMin) return 26;
-    if (width >= largeTabletMin) return 24;
-    return 22;
+    if (width >= desktopMin) return 36;
+    if (width >= largeTabletMin) return 30;
+    return 24;
   }
 
   /// 获取横屏歌词其他行字号
   static double getOtherLyricFontSize(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    if (width >= largeTabletMin) return 18;
-    return 16;
+    if (width >= desktopMin) return 30;
+    if (width >= largeTabletMin) return 26;
+    return 22;
   }
 
   /// 获取横屏主播放按钮尺寸
   static double getMainPlayButtonSize(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    if (width >= largeTabletMin) return 48;
-    return 36;
+    if (width >= desktopMin) return 56;
+    if (width >= largeTabletMin) return 52;
+    return 44;
   }
 
-  /// 获取横屏左侧区域比例
+  /// 获取横屏左侧区域比例（左列已自包含控制条，可适度缩窄）
   static double getLeftSectionRatio(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    if (width >= desktopMin) return 0.42;
-    if (width >= largeTabletMin) return 0.40;
-    return 0.38;
+    if (width >= desktopMin) return 0.40;
+    if (width >= largeTabletMin) return 0.38;
+    return 0.36;
   }
 
   /// 获取横屏边距
@@ -281,6 +283,52 @@ class LandscapeBreakpoints {
     if (width >= desktopMin) return 48;
     if (width >= largeTabletMin) return 32;
     return 24;
+  }
+}
+
+/// 竖屏手机断点（详情页单面板布局）
+class PortraitBreakpoints {
+  /// 折叠/小平板/大屏手机的细分
+  static const double tabletPortraitMin = 600;
+  static const double largePhoneMin = 400;
+
+  /// 获取竖屏封面尺寸
+  static double getCoverSize(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    if (width >= tabletPortraitMin) return 320;
+    if (width >= largePhoneMin) return 280;
+    return 240;
+  }
+
+  /// 获取竖屏主播放按钮尺寸
+  static double getMainPlayButtonSize(BuildContext context) {
+    final shortestSide = MediaQuery.of(context).size.shortestSide;
+    if (shortestSide >= 700) return 80;
+    if (shortestSide >= 600) return 72;
+    return 64;
+  }
+
+  /// 获取竖屏副按钮尺寸（mode / prev / next / queue）
+  static double getSideButtonSize(BuildContext context) {
+    final shortestSide = MediaQuery.of(context).size.shortestSide;
+    if (shortestSide >= 700) return 48;
+    return 40;
+  }
+
+  /// 获取竖屏圆形操作按钮尺寸（收藏 / 分享）
+  static double getCircleActionSize(BuildContext context) {
+    final shortestSide = MediaQuery.of(context).size.shortestSide;
+    if (shortestSide >= 700) return 52;
+    if (shortestSide >= 600) return 48;
+    return 44;
+  }
+
+  /// 获取竖屏水平外边距
+  static double getHorizontalPadding(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    if (width >= tabletPortraitMin) return 32;
+    if (width >= largePhoneMin) return 24;
+    return 20;
   }
 }
 

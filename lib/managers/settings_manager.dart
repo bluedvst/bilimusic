@@ -4,6 +4,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:bilimusic/models/roam_style.dart';
+
 /// 设置管理器
 class SettingsManager extends ChangeNotifier {
   // 设置键名常量
@@ -24,6 +26,14 @@ class SettingsManager extends ChangeNotifier {
   static const String KEY_CROSSFADE_DURATION = 'crossfade_duration';
   static const String KEY_PRELOAD_SECONDS = 'preload_seconds';
 
+  // 漫游模式设置键名
+  static const String KEY_ROAM_STYLE = 'roam_style';
+  static const String KEY_ROAM_REFILL_THRESHOLD = 'roam_refill_threshold';
+
+  // 局域网同步设置键名
+  static const String KEY_LAN_SYNC_MODE = 'lan_sync_mode';
+  static const String KEY_LAN_SYNC_DEVICE_NAME = 'lan_sync_device_name';
+
   // 默认值
   static const bool DEFAULT_NOTIFICATIONS_ENABLED = true;
   static const bool DEFAULT_DOWNLOAD_QUALITY_HIGH = true;
@@ -43,6 +53,14 @@ class SettingsManager extends ChangeNotifier {
   static const bool DEFAULT_CROSSFADE_ENABLED = false; // 默认关闭
   static const int DEFAULT_CROSSFADE_DURATION = 3000; // 3秒
   static const int DEFAULT_PRELOAD_SECONDS = 10; // 剩10秒时预加载
+
+  // 漫游模式默认值
+  static const RoamStyle DEFAULT_ROAM_STYLE = RoamStyle.balanced;
+  static const int DEFAULT_ROAM_REFILL_THRESHOLD = 2;
+
+  // 局域网同步默认值
+  static const String DEFAULT_LAN_SYNC_MODE = 'off';
+  static const String DEFAULT_LAN_SYNC_DEVICE_NAME = '';
 
   // 单例实例
   static final SettingsManager _instance = SettingsManager._internal();
@@ -123,6 +141,20 @@ class SettingsManager extends ChangeNotifier {
         prefs.getInt(KEY_CROSSFADE_DURATION) ?? DEFAULT_CROSSFADE_DURATION;
     _cache[KEY_PRELOAD_SECONDS] =
         prefs.getInt(KEY_PRELOAD_SECONDS) ?? DEFAULT_PRELOAD_SECONDS;
+
+    // 加载漫游模式设置
+    _cache[KEY_ROAM_STYLE] =
+        prefs.getString(KEY_ROAM_STYLE) ?? DEFAULT_ROAM_STYLE.name;
+    _cache[KEY_ROAM_REFILL_THRESHOLD] =
+        prefs.getInt(KEY_ROAM_REFILL_THRESHOLD) ??
+        DEFAULT_ROAM_REFILL_THRESHOLD;
+
+    // 加载局域网同步设置
+    _cache[KEY_LAN_SYNC_MODE] =
+        prefs.getString(KEY_LAN_SYNC_MODE) ?? DEFAULT_LAN_SYNC_MODE;
+    _cache[KEY_LAN_SYNC_DEVICE_NAME] =
+        prefs.getString(KEY_LAN_SYNC_DEVICE_NAME) ??
+        DEFAULT_LAN_SYNC_DEVICE_NAME;
   }
 
   /// 获取通知设置
@@ -291,6 +323,50 @@ class SettingsManager extends ChangeNotifier {
 
     await _saveSetting(KEY_PRELOAD_SECONDS, finalValue);
     _cache[KEY_PRELOAD_SECONDS] = finalValue;
+  }
+
+  // ============ 漫游模式相关设置 ============
+
+  /// 获取漫游风格档位，默认 [RoamStyle.balanced]。
+  RoamStyle get roamStyle {
+    final name = _cache[KEY_ROAM_STYLE] as String?;
+    if (name == null) return DEFAULT_ROAM_STYLE;
+    return RoamStyle.values.firstWhere(
+      (e) => e.name == name,
+      orElse: () => DEFAULT_ROAM_STYLE,
+    );
+  }
+
+  /// 设置漫游风格档位（持久化）。
+  Future<void> setRoamStyle(RoamStyle value) async {
+    await _saveSetting(KEY_ROAM_STYLE, value.name);
+  }
+
+  /// 获取队列剩余触发 fetch 的阈值（默认 2，范围 1~5）。
+  int get roamRefillThreshold =>
+      _cache[KEY_ROAM_REFILL_THRESHOLD] ?? DEFAULT_ROAM_REFILL_THRESHOLD;
+
+  /// 设置阈值并夹到 1~5。
+  Future<void> setRoamRefillThreshold(int value) async {
+    final clamped = value.clamp(1, 5);
+    await _saveSetting(KEY_ROAM_REFILL_THRESHOLD, clamped);
+  }
+
+  // ============ 局域网同步相关设置 ============
+
+  /// 局域网同步模式：`off` / `private` / `public`。
+  String get lanSyncMode => _cache[KEY_LAN_SYNC_MODE] ?? DEFAULT_LAN_SYNC_MODE;
+
+  Future<void> setLanSyncMode(String value) async {
+    await _saveSetting(KEY_LAN_SYNC_MODE, value);
+  }
+
+  /// 用户自定义的设备名。空字符串表示沿用 DeviceIdentity 的默认值。
+  String get lanSyncDeviceName =>
+      _cache[KEY_LAN_SYNC_DEVICE_NAME] ?? DEFAULT_LAN_SYNC_DEVICE_NAME;
+
+  Future<void> setLanSyncDeviceName(String value) async {
+    await _saveSetting(KEY_LAN_SYNC_DEVICE_NAME, value);
   }
 
   /// 获取外观的文本描述

@@ -139,17 +139,25 @@ class _PlaylistItemState extends State<PlaylistItem> {
                       ],
                     ),
                   ),
-                  // 操作按钮
-                  IconButton(
-                    icon: Icon(
-                      Icons.more_vert,
-                      color: brightness == Brightness.dark
-                          ? Colors.grey[500]
-                          : Colors.grey[400],
-                      size: 20,
+                  // 拖拽手柄（长按右侧手柄启动排序）
+                  ReorderableDragStartListener(
+                    index: widget.index,
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.grab,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 12,
+                        ),
+                        child: Icon(
+                          Icons.drag_handle,
+                          color: brightness == Brightness.dark
+                              ? Colors.grey[500]
+                              : Colors.grey[400],
+                          size: 20,
+                        ),
+                      ),
                     ),
-                    onPressed: widget.onFavoriteToggle,
-                    splashRadius: 20,
                   ),
                 ],
               ),

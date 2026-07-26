@@ -1,36 +1,37 @@
 import 'dart:ui';
-import 'package:bilimusic/components/auto_appbar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:bilimusic/models/music.dart' as model;
-import 'package:bilimusic/utils/animations.dart';
-import 'package:bilimusic/utils/dialog_helpers.dart';
-import 'package:bilimusic/utils/lyric_parser.dart';
+import 'package:bilimusic/components/auto_appbar.dart';
 import 'package:bilimusic/components/lyric/lyric_section.dart';
 import 'package:bilimusic/components/lyric/lyric_source.dart';
-import 'package:bilimusic/shells/shell_page_manager.dart';
+import 'package:bilimusic/components/portrait/album_section.dart';
+import 'package:bilimusic/models/music.dart' as model;
 import 'package:bilimusic/providers/playback_providers.dart';
+import 'package:bilimusic/shells/shell_page_manager.dart';
+import 'package:bilimusic/utils/dialog_helpers.dart';
+import 'package:bilimusic/utils/lyric_parser.dart';
 
-/// 竖屏详情页
+/// 竖屏详情页 —— Apple Music 风格单面板布局
+/// （与横屏 `LandscapeAlbumSection` 思路一致：封面 + 信息 + 操作 + 进度 + 5 按钮 + 音量）
 class PortraitDetailPage extends ConsumerStatefulWidget {
   final model.Music music;
   final Duration position;
   final Duration? duration;
   final bool isPlaying;
   final bool showLyrics;
-  final List<LyricInfo> lyricOptions;
+  final List<LyricSource> lyricSources;
   final String? selectedLyricId;
   final LyricParser? lyricParser;
   final bool isLoadingLyrics;
   final Color? dominantColor;
-  final Color? vibrantColor;
   final IconData playModeIcon;
   final bool isTransitioning;
   final VoidCallback onToggleFavorite;
   final VoidCallback onShare;
   final VoidCallback onTogglePlay;
   final VoidCallback onToggleShowLyrics;
+  final VoidCallback onPlaylist;
   final Function(String) onLoadLyric;
   final Function(Duration) onSeek;
   final VoidCallback onTogglePlayMode;
@@ -42,18 +43,18 @@ class PortraitDetailPage extends ConsumerStatefulWidget {
     required this.duration,
     required this.isPlaying,
     required this.showLyrics,
-    required this.lyricOptions,
+    required this.lyricSources,
     required this.selectedLyricId,
     required this.lyricParser,
     required this.isLoadingLyrics,
     required this.dominantColor,
-    required this.vibrantColor,
     required this.playModeIcon,
     required this.isTransitioning,
     required this.onToggleFavorite,
     required this.onShare,
     required this.onTogglePlay,
     required this.onToggleShowLyrics,
+    required this.onPlaylist,
     required this.onLoadLyric,
     required this.onSeek,
     required this.onTogglePlayMode,
@@ -73,9 +74,7 @@ class _PortraitDetailPageState extends ConsumerState<PortraitDetailPage> {
       appBar: _buildAppBar(context),
       body: Stack(
         children: [
-          // 渐变背景
           _buildBackground(),
-          // 主内容
           widget.showLyrics
               ? _buildLyricsView(context)
               : _buildAlbumView(context),
@@ -123,7 +122,6 @@ class _PortraitDetailPageState extends ConsumerState<PortraitDetailPage> {
   Widget _buildBackground() {
     return Stack(
       children: [
-        // 主背景色
         Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -139,20 +137,20 @@ class _PortraitDetailPageState extends ConsumerState<PortraitDetailPage> {
             ),
           ),
         ),
-        // 封面图片模糊背景
         if (widget.music.coverUrl.isNotEmpty)
           Positioned.fill(
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
-              child: CachedNetworkImage(
-                imageUrl: widget.music.coverUrl,
-                fit: BoxFit.cover,
-                color: Colors.black.withValues(alpha: 0.3),
-                colorBlendMode: BlendMode.darken,
+            child: RepaintBoundary(
+              child: ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
+                child: CachedNetworkImage(
+                  imageUrl: widget.music.coverUrl,
+                  fit: BoxFit.cover,
+                  color: Colors.black.withValues(alpha: 0.3),
+                  colorBlendMode: BlendMode.darken,
+                ),
               ),
             ),
           ),
-        // 底部暗角
         Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -168,330 +166,50 @@ class _PortraitDetailPageState extends ConsumerState<PortraitDetailPage> {
 
   Widget _buildAlbumView(BuildContext context) {
     return SafeArea(
-      child: Column(
-        children: [
-          const Spacer(flex: 1),
-          // 封面
-          _buildCover(),
-          const SizedBox(height: 40),
-          // 歌曲信息
-          _buildSongInfo(),
-          const Spacer(flex: 2),
-          // 迷你播放控制
-          _buildMiniControls(context),
-          const SizedBox(height: 20),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCover() {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 400),
-      switchInCurve: Curves.easeOut,
-      switchOutCurve: Curves.easeIn,
-      transitionBuilder: (child, animation) => FadeTransition(
-        opacity: animation,
-        child: ScaleTransition(
-          scale: Tween<double>(
-            begin: 0.85,
-            end: 1.0,
-          ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
-          child: child,
-        ),
-      ),
-      child: Container(
-        key: ValueKey(widget.music.id),
-        width: 280,
-        height: 280,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: (widget.dominantColor ?? Colors.pink).withValues(
-                alpha: 0.4,
-              ),
-              blurRadius: 40,
-              spreadRadius: 5,
-              offset: const Offset(0, 20),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: widget.music.coverUrl.isNotEmpty
-              ? CachedNetworkImage(
-                  imageUrl: widget.music.coverUrl,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    color: Colors.grey[800],
-                    child: const Center(
-                      child: CircularProgressIndicator(color: Colors.white),
-                    ),
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    color: Colors.grey[800],
-                    child: const Icon(
-                      Icons.music_note,
-                      color: Colors.white,
-                      size: 80,
-                    ),
-                  ),
-                )
-              : Container(
-                  color: Colors.grey[800],
-                  child: const Icon(
-                    Icons.music_note,
-                    color: Colors.white,
-                    size: 80,
-                  ),
-                ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSongInfo() {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 300),
-      switchOutCurve: Curves.easeOut,
-      transitionBuilder: (child, animation) => FadeTransition(
-        opacity: animation,
-        child: SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0, 0.1),
-            end: Offset.zero,
-          ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
-          child: child,
-        ),
-      ),
-      child: Padding(
-        key: ValueKey('${widget.music.id}_info'),
-        padding: const EdgeInsets.symmetric(horizontal: 40),
+      child: SingleChildScrollView(
         child: Column(
           children: [
-            Text(
-              widget.music.title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                letterSpacing: -0.5,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
             const SizedBox(height: 8),
-            Text(
-              widget.music.artist,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7),
-                fontSize: 16,
-                fontWeight: FontWeight.w400,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            PortraitAlbumSection(
+              coverUrl: widget.music.coverUrl,
+              title: widget.music.title,
+              artist: widget.music.artist,
+              album: widget.music.album,
+              dominantColor: widget.dominantColor,
+              isFavorite: _isFavorite(),
+              trackId: widget.music.id,
+              onFavoritePressed: widget.onToggleFavorite,
+              onSharePressed: widget.onShare,
+              isPlaying: widget.isPlaying,
+              playModeIcon: widget.playModeIcon,
+              onPlayPause: widget.onTogglePlay,
+              onPrevious: () =>
+                  ref.read(playbackCommandsProvider.notifier).playPrevious(),
+              onNext: () =>
+                  ref.read(playbackCommandsProvider.notifier).playNext(),
+              onPlayModeToggle: widget.onTogglePlayMode,
+              onPlaylist: widget.onPlaylist,
+              onShowLyrics: widget.onToggleShowLyrics,
             ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildMiniControls(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        children: [
-          // 进度条
-          _buildProgressBar(context),
-          const SizedBox(height: 16),
-          // 控制按钮
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              // 收藏
-              IconButton(
-                icon: Icon(
-                  ref
-                          .read(playbackCommandsProvider.notifier)
-                          .isFavorite(widget.music)
-                      ? Icons.favorite
-                      : Icons.favorite_border,
-                  color:
-                      ref
-                          .read(playbackCommandsProvider.notifier)
-                          .isFavorite(widget.music)
-                      ? Colors.red[400]
-                      : Colors.white,
-                ),
-                iconSize: 28,
-                onPressed: widget.onToggleFavorite,
-              ),
-              // 播放/暂停
-              GestureDetector(
-                onTap: widget.onTogglePlay,
-                child: Container(
-                  width: 68,
-                  height: 68,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.white,
-                        Colors.white.withValues(alpha: 0.9),
-                      ],
-                    ),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.white.withValues(alpha: 0.3),
-                        blurRadius: 20,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    widget.isPlaying ? Icons.pause : Icons.play_arrow,
-                    color: Colors.black,
-                    size: 36,
-                  ),
-                ),
-              ),
-              // 歌词切换
-              IconButton(
-                icon: Icon(Icons.lyrics_outlined, color: Colors.white),
-                iconSize: 28,
-                onPressed: widget.onToggleShowLyrics,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // 底部操作栏
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              IconButton(
-                icon: Icon(
-                  Icons.shuffle,
-                  color: Colors.white.withValues(alpha: 0.7),
-                ),
-                iconSize: 24,
-                onPressed: widget.onTogglePlayMode,
-              ),
-              IconButton(
-                icon: Icon(
-                  Icons.skip_previous,
-                  color: Colors.white.withValues(alpha: 0.7),
-                ),
-                iconSize: 32,
-                onPressed: () =>
-                    ref.read(playbackCommandsProvider.notifier).playPrevious(),
-              ),
-              IconButton(
-                icon: Icon(
-                  Icons.skip_next,
-                  color: Colors.white.withValues(alpha: 0.7),
-                ),
-                iconSize: 32,
-                onPressed: () =>
-                    ref.read(playbackCommandsProvider.notifier).playNext(),
-              ),
-              IconButton(
-                icon: Icon(
-                  Icons.share_outlined,
-                  color: Colors.white.withValues(alpha: 0.7),
-                ),
-                iconSize: 24,
-                onPressed: widget.onShare,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProgressBar(BuildContext context) {
-    final progress = widget.duration != null && widget.duration!.inSeconds > 0
-        ? widget.position.inSeconds / widget.duration!.inSeconds
-        : 0.0;
-
-    return Column(
-      children: [
-        SliderTheme(
-          data: SliderThemeData(
-            trackHeight: 4,
-            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-            overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
-            activeTrackColor: Colors.white,
-            inactiveTrackColor: Colors.white.withValues(alpha: 0.3),
-            thumbColor: Colors.white,
-            overlayColor: Colors.white.withValues(alpha: 0.2),
-          ),
-          child: Slider(
-            value: progress.clamp(0.0, 1.0),
-            onChanged: (value) {
-              if (widget.duration != null) {
-                widget.onSeek(
-                  Duration(
-                    seconds: (value * widget.duration!.inSeconds).toInt(),
-                  ),
-                );
-              }
-            },
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                _formatDuration(widget.position),
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
-                  fontSize: 12,
-                ),
-              ),
-              if (widget.isTransitioning)
-                TransitionGlowIndicator(
-                  isVisible: widget.isTransitioning,
-                  child: const Text(
-                    '过渡中',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                )
-              else
-                Text(
-                  _formatDuration(widget.duration ?? Duration.zero),
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
-                    fontSize: 12,
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ],
-    );
+  bool _isFavorite() {
+    return ref.read(playbackCommandsProvider.notifier).isFavorite(widget.music);
   }
 
   Widget _buildLyricsView(BuildContext context) {
-    // 将 LyricInfo 转换为 LyricSource
-    final lyricSources = widget.lyricOptions.map((option) {
-      return LyricSource(id: option.id, name: option.name);
-    }).toList();
-
     return LyricSection(
+      title: widget.music.title,
+      artist: widget.music.artist,
+      album: widget.music.album,
       lyricParser: widget.lyricParser,
       position: widget.position,
-      lyricSources: lyricSources,
+      lyricSources: widget.lyricSources,
       selectedLyricId: widget.selectedLyricId,
       isLoadingLyrics: widget.isLoadingLyrics,
       onLyricSourceChanged: widget.onLoadLyric,
@@ -506,7 +224,7 @@ class _PortraitDetailPageState extends ConsumerState<PortraitDetailPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) => Container(
+      builder: (sheetContext) => Container(
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -522,28 +240,15 @@ class _PortraitDetailPageState extends ConsumerState<PortraitDetailPage> {
             const SizedBox(height: 20),
             ListTile(
               leading: Icon(
-                ref
-                        .read(playbackCommandsProvider.notifier)
-                        .isFavorite(widget.music)
-                    ? Icons.favorite
-                    : Icons.favorite_border,
-                color:
-                    ref
-                        .read(playbackCommandsProvider.notifier)
-                        .isFavorite(widget.music)
-                    ? Colors.red
-                    : Colors.white,
+                _isFavorite() ? Icons.favorite : Icons.favorite_border,
+                color: _isFavorite() ? Colors.red : Colors.white,
               ),
               title: Text(
-                ref
-                        .read(playbackCommandsProvider.notifier)
-                        .isFavorite(widget.music)
-                    ? '取消收藏'
-                    : '收藏',
+                _isFavorite() ? '取消收藏' : '收藏',
                 style: const TextStyle(color: Colors.white),
               ),
               onTap: () {
-                Navigator.pop(context);
+                Navigator.pop(sheetContext);
                 widget.onToggleFavorite();
               },
             ),
@@ -551,26 +256,29 @@ class _PortraitDetailPageState extends ConsumerState<PortraitDetailPage> {
               leading: const Icon(Icons.share, color: Colors.white),
               title: const Text('分享', style: TextStyle(color: Colors.white)),
               onTap: () {
-                Navigator.pop(context);
+                Navigator.pop(sheetContext);
                 widget.onShare();
               },
             ),
             ListTile(
-              leading: const Icon(Icons.playlist_add, color: Colors.white),
-              title: const Text(
-                '添加到播放列表',
-                style: TextStyle(color: Colors.white),
+              leading: Icon(
+                widget.showLyrics ? Icons.lyrics : Icons.lyrics_outlined,
+                color: Colors.white,
+              ),
+              title: Text(
+                widget.showLyrics ? '隐藏歌词' : '显示歌词',
+                style: const TextStyle(color: Colors.white),
               ),
               onTap: () {
-                Navigator.pop(context);
-                // TODO: 添加到播放列表
+                Navigator.pop(sheetContext);
+                widget.onToggleShowLyrics();
               },
             ),
             ListTile(
               leading: const Icon(Icons.info_outline, color: Colors.white),
               title: const Text('歌曲信息', style: TextStyle(color: Colors.white)),
               onTap: () {
-                Navigator.pop(context);
+                Navigator.pop(sheetContext);
                 _showSongInfo(context);
               },
             ),
@@ -583,43 +291,23 @@ class _PortraitDetailPageState extends ConsumerState<PortraitDetailPage> {
   void _showSongInfo(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: Colors.grey[900],
         title: const Text('歌曲信息', style: TextStyle(color: Colors.white)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            infoRow(
-              '标题',
-              widget.music.title,
-              labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
-            ),
-            infoRow(
-              '艺术家',
-              widget.music.artist,
-              labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
-            ),
-            infoRow(
-              '专辑',
-              widget.music.album,
-              labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
-            ),
-            infoRow(
-              '时长',
-              _formatDuration(widget.duration ?? Duration.zero),
-              labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
-            ),
-            infoRow(
-              '来源',
-              'Bilibili',
-              labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
-            ),
+            infoRow('标题', widget.music.title),
+            infoRow('艺术家', widget.music.artist),
+            infoRow('专辑', widget.music.album),
+            infoRow('时长', _formatDuration(widget.duration ?? Duration.zero)),
+            infoRow('来源', 'Bilibili'),
           ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('关闭'),
           ),
         ],
@@ -632,19 +320,5 @@ class _PortraitDetailPageState extends ConsumerState<PortraitDetailPage> {
     final minutes = twoDigits(duration.inMinutes);
     final seconds = twoDigits(duration.inSeconds.remainder(60));
     return '$minutes:$seconds';
-  }
-}
-
-/// 歌词信息类（用于竖屏模式）
-class LyricInfo {
-  final String id;
-  final String name;
-  final String artist;
-
-  LyricInfo({required this.id, required this.name, required this.artist});
-
-  @override
-  String toString() {
-    return '$name - $artist';
   }
 }

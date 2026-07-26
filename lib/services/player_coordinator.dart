@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:bilimusic/models/play_mode.dart';
+import 'package:bilimusic/models/roam_style.dart';
 import 'package:flutter/foundation.dart';
 import 'package:bilimusic/models/music.dart';
 import 'package:bilimusic/models/player_state.dart';
@@ -8,7 +9,24 @@ import 'package:bilimusic/services/dual_audio_service.dart';
 import 'package:bilimusic/services/playlist_service.dart';
 import 'package:bilimusic/services/notification_service.dart';
 import 'package:bilimusic/services/api_service.dart';
+import 'package:bilimusic/services/roaming_service.dart';
 import 'package:bilimusic/managers/settings_manager.dart';
+
+/// 漫游会话：进入 roam 时创建，退出 roam 时置 null。
+///
+/// 与 [PlayMode] 完全正交——roam 期间 PlayMode 不变（用户可继续按 sequential/
+/// shuffle 播）。退出 roam 只清空本会话，队列保留。
+class _RoamSession {
+  final RoamStyle style;
+  final int refillThreshold;
+  final List<Music> seeds;
+
+  const _RoamSession({
+    required this.style,
+    required this.refillThreshold,
+    this.seeds = const [],
+  });
+}
 
 /// 播放器协调器
 /// 职责: 协调各个服务的工作,提供统一的播放器接口,管理双播放器的切换和预加载
@@ -18,6 +36,7 @@ class PlayerCoordinator {
   final PlaylistService _playlistService;
   final NotificationService _notificationService;
   final ApiService _apiService;
+  final RoamingService _roamingService;
 
   final Random _random = Random();
   bool _isHandlingCompletion = false;
@@ -29,17 +48,23 @@ class PlayerCoordinator {
   Music? _preloadedMusic; // 记录已预加载的音乐
   int? _preloadedIndex; // 记录已预加载的音乐索引
 
+  // 漫游状态机：与 PlayMode 正交，由 profile_page 单独控制进入/退出
+  _RoamSession? _roamSession;
+  bool _roamFetchInFlight = false;
+
   PlayerCoordinator({
     required DualAudioService audioService,
     required SettingsManager settingsManager,
     required PlaylistService playlistService,
     required NotificationService notificationService,
     required ApiService apiService,
+    required RoamingService roamingService,
   }) : _audioService = audioService,
        _settingsManager = settingsManager,
        _playlistService = playlistService,
        _notificationService = notificationService,
-       _apiService = apiService {
+       _apiService = apiService,
+       _roamingService = roamingService {
     _setupEventHandlers();
   }
 
@@ -101,6 +126,11 @@ class PlayerCoordinator {
 
   /// 暴露 [ApiService.ensureCid] 给 PlaylistService 在加载时回填缺失 cid。
   Future<Music> ensureCid(Music music) => _apiService.ensureCid(music);
+
+  /// 播放当前索引处的曲目。
+  ///
+  /// `_playCurrentTrack` 的 public 转发，供 onboarding apply 步骤调用。
+  Future<void> playCurrentTrack() => _playCurrentTrack();
 
   /// 播放当前曲目
   Future<void> _playCurrentTrack() async {
@@ -178,6 +208,14 @@ class PlayerCoordinator {
   /// 切换播放模式
   void togglePlayMode() {
     _audioService.togglePlayMode();
+  }
+
+  /// 显式设置播放模式（与 togglePlayMode 互不影响）。
+  ///
+  /// 仅接受 [PlayMode] 中的值；漫游模式由 [startRoam]/[stopRoam] 控制，
+  /// 不通过 [setPlayMode] 进入或退出。
+  void setPlayMode(PlayMode mode) {
+    _audioService.setPlayMode(mode);
   }
 
   /// 播放下一首(手动触发,不使用crossfade)
@@ -579,6 +617,169 @@ class PlayerCoordinator {
     }
   }
 
+  // ============ Roam 相关方法 ============
+
+  /// 进入漫游模式：以 [playlistId] 歌单为种子，清空当前队列后从首曲开始播放，
+  /// 后续按 [_checkRoamRefill] 懒加载相关歌曲。
+  ///
+  /// 行为：
+  /// - 清空当前播放列表（接受丢失当前进度，符合 网易云/Spotify RF 的 UX）
+  /// - 加载歌单所有歌曲（系统 favorites / 用户自建歌单）
+  /// - 从 currentIndex = 0 开始播放
+  /// - 创建 [_RoamSession] 激活懒加载
+  ///
+  /// 空歌单保护：歌单为空时直接 return，不创建 session、不抛错。
+  Future<void> startRoam(String playlistId, RoamStyle style) async {
+    // 先停掉当前播放（防 crossfade 残留状态污染新队列）
+    await _audioService.stop();
+    _preloadedMusic = null;
+    _preloadedIndex = null;
+    await clearPlaylist();
+
+    // 加载种子歌曲
+    final List<Music> seeds;
+    if (playlistId == 'favorites') {
+      seeds = await _playlistService.getSystemPlaylistSongs('favorites');
+    } else {
+      seeds = await _playlistService.loadPlaylistSongs(playlistId);
+    }
+    if (seeds.isEmpty) {
+      debugPrint('[PlayerCoordinator] startRoam: empty playlist $playlistId');
+      return;
+    }
+
+    await _playlistService.addAllToPlaylist(seeds);
+    _playlistService.setCurrentIndex(0);
+
+    _roamSession = _RoamSession(
+      style: style,
+      refillThreshold: _settingsManager.roamRefillThreshold,
+      seeds: seeds,
+    );
+
+    await _playCurrentTrack();
+    debugPrint(
+      '[PlayerCoordinator] roam started from $playlistId, style=$style',
+    );
+  }
+
+  /// 应用漫游播放列表（供 onboarding 完成步骤使用）。
+  ///
+  /// 与 [startRoam] 的区别：
+  /// - 不再从歌单加载种子，调用方已准备好完整播放列表 [songs]（种子 + 推荐 shuffle 后）。
+  /// - 显式传入用户挑选的 [seeds]（数量 = 1 或 3），用于续杯时的多种子拉取。
+  Future<void> applyRoamPlaylist({
+    required List<Music> songs,
+    required RoamStyle style,
+    required List<Music> seeds,
+  }) async {
+    // 先停掉当前播放（防 crossfade 残留状态污染新队列）
+    await _audioService.stop();
+    _preloadedMusic = null;
+    _preloadedIndex = null;
+    await clearPlaylist();
+
+    if (songs.isEmpty) {
+      debugPrint('[PlayerCoordinator] applyRoamPlaylist: empty songs');
+      return;
+    }
+
+    await _playlistService.addAllToPlaylist(songs);
+    _playlistService.setCurrentIndex(0);
+
+    _roamSession = _RoamSession(
+      style: style,
+      refillThreshold: _settingsManager.roamRefillThreshold,
+      seeds: seeds,
+    );
+
+    await _playCurrentTrack();
+    debugPrint(
+      '[PlayerCoordinator] roam applied: ${songs.length} songs, ${seeds.length} seeds, style=$style',
+    );
+  }
+
+  /// 退出漫游模式：停用 session，队列保留并继续按当前 PlayMode 播。
+  void stopRoam() {
+    if (_roamSession == null) return;
+    _roamSession = null;
+    debugPrint('[PlayerCoordinator] roam stopped');
+  }
+
+  /// 检查队列余量，触发 roam 懒加载。
+  ///
+  /// 由 [_onCurrentIndexChanged] 在每次曲目切换时调用。
+  /// 也可在 startRoam 后立即调一次（用户切换歌单后立刻预填）。
+  void _checkRoamRefill() {
+    final session = _roamSession;
+    if (session == null || _roamFetchInFlight) return;
+    final idx = _playlistService.currentIndexSync;
+    if (idx == null) return;
+
+    final playlist = _playlistService.currentPlaylist.value;
+    final remaining = playlist.length - idx - 1;
+    if (remaining < session.refillThreshold) {
+      _triggerRoamFetch();
+    }
+  }
+
+  /// 拉一批候选歌曲并追加到当前队列。
+  ///
+  /// 多种子 refill：
+  /// - 主种子 = 当前播放的歌曲
+  /// - 副种子 = 从 session.seeds 中随机抽 1 颗（避免与当前曲重复）
+  /// - 两个种子并发 fetchBatch(size: 2) → 合并 → shuffle → take 4
+  /// - `_roamFetchInFlight` 防重入
+  /// - 失败 / 0 候选：debugPrint 留痕，下次 currentIndex 变化再用新 seed 重试
+  Future<void> _triggerRoamFetch() async {
+    final session = _roamSession;
+    final current = _playlistService.currentMusic;
+    if (session == null || current == null) return;
+
+    // 副种子：从 session.seeds 中随机抽 1 颗（剔除与 currentMusic 同 id 的）
+    final pool = session.seeds.where((s) => s.id != current.id).toList();
+    final companion = pool.isNotEmpty
+        ? pool[_random.nextInt(pool.length)]
+        : null;
+    final seeds = companion != null && companion.id != current.id
+        ? [current, companion]
+        : [current];
+
+    _roamFetchInFlight = true;
+    try {
+      final futures = seeds.map(
+        (s) =>
+            _roamingService.fetchBatch(seed: s, style: session.style, size: 2),
+      );
+      final batches = await Future.wait(futures);
+      final merged = batches.expand((l) => l).toList()..shuffle(_random);
+      final unique = _dedupByIdCid(merged).take(4).toList();
+      if (unique.isNotEmpty) {
+        await _playlistService.addAllToPlaylist(unique);
+        debugPrint(
+          '[PlayerCoordinator] roam refilled +${unique.length} (seeds=${seeds.length}, style=${session.style.name})',
+        );
+      } else {
+        debugPrint('[PlayerCoordinator] roam refill: 0 candidates');
+      }
+    } catch (e) {
+      debugPrint('[PlayerCoordinator] roam refill failed: $e');
+    } finally {
+      _roamFetchInFlight = false;
+    }
+  }
+
+  /// 按 (id, cid) 去重。
+  List<Music> _dedupByIdCid(List<Music> list) {
+    final seen = <String>{};
+    final out = <Music>[];
+    for (final m in list) {
+      final key = '${m.id}_${m.cid}';
+      if (seen.add(key)) out.add(m);
+    }
+    return out;
+  }
+
   /// 音频状态变化处理
   void _onAudioStateChanged(AudioState state) {
     _updateNotificationControls();
@@ -607,6 +808,8 @@ class PlayerCoordinator {
   /// 当前索引变化处理
   void _onCurrentIndexChanged() {
     _updateNotificationControls();
+    // 每次曲目切换都检查队列余量，触发 roam refill（如果激活）
+    _checkRoamRefill();
   }
 
   /// 更新通知控制按钮
@@ -644,6 +847,20 @@ class PlayerCoordinator {
 
   /// 获取当前播放模式
   ValueListenable<PlayMode> get playMode => _audioService.playMode;
+
+  /// 当前是否处于漫游模式。
+  bool get isRoaming => _roamSession != null;
+
+  /// 当前漫游会话的风格档位。
+  RoamStyle? get roamStyle => _roamSession?.style;
+
+  /// 当前漫游会话的续杯阈值（仅当 [isRoaming] 为 true 时有意义）。
+  int? get roamRefillThreshold => _roamSession?.refillThreshold;
+
+  /// 当前漫游会话的用户挑选种子（1 颗 lowData / 3 颗 normal）。
+  ///
+  /// 仅当 [isRoaming] 为 true 时有意义。用于续杯的多种子拉取。
+  List<Music> get roamSeeds => _roamSession?.seeds ?? const [];
 
   /// 获取当前播放的音乐
   Music? get currentMusic => _playlistService.currentMusic;

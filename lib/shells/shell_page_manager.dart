@@ -15,6 +15,8 @@ enum ShellPage {
   dataMigration,
   login,
   favImport,
+  roamOnboarding,
+  lanSync,
 }
 
 class ShellPageManager extends ChangeNotifier {
@@ -25,8 +27,23 @@ class ShellPageManager extends ChangeNotifier {
   final List<ShellPage> _pageStack = [ShellPage.home];
   final Map<String, dynamic> _pageArgs = {};
 
+  /// 每次 [goToPlaylist] 自增，用来让 LandscapeShell 在同一 playlist 上重复点击
+  /// 时区分不同的 push 实例，使 KeyedSubtree 重新创建 widget 并触发入场动画。
+  int _playlistNavGen = 0;
+  int get playlistNavGen => _playlistNavGen;
+
   ShellPage get currentPage => _pageStack.last;
   bool get canPop => _pageStack.length > 1;
+
+  /// 栈中最后一个非 detail 的页面，作为 PortraitShell 底层主内容的目标。
+  /// 当栈顶是 detail 时，详情页作为独立动画层叠在上面，底层继续显示 basePage，
+  /// 这样 detail 的进入/离开不会和底层横滑过渡相互打架。
+  ShellPage get basePage {
+    for (var i = _pageStack.length - 1; i >= 0; i--) {
+      if (_pageStack[i] != ShellPage.detail) return _pageStack[i];
+    }
+    return ShellPage.home;
+  }
 
   int get selectedTabIndex {
     switch (_pageStack.last) {
@@ -99,6 +116,7 @@ class ShellPageManager extends ChangeNotifier {
     List<Music>? songs,
     String? playlistName,
   }) {
+    _playlistNavGen++;
     push(
       ShellPage.playlist,
       args: {

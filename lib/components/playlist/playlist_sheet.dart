@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:bilimusic/models/music.dart';
 import 'package:bilimusic/providers/playlist_providers.dart';
 import 'package:bilimusic/providers/playback_providers.dart';
 import 'package:bilimusic/components/playlist/playlist_item.dart';
@@ -63,31 +62,6 @@ class _PlaylistSheetState extends ConsumerState<PlaylistSheet>
         .read(playbackCommandsProvider.notifier)
         .moveInPlaylist(oldIndex, newIndex);
     // moveInPlaylist 会触发通知，无需手动 setState
-  }
-
-  void _showDeleteConfirmation(BuildContext context, Music music, int index) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('删除歌曲'),
-        content: Text('确定要从播放列表中移除"${music.title}"吗？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ref
-                  .read(playbackCommandsProvider.notifier)
-                  .removeFromPlaylist(music);
-            },
-            child: const Text('删除', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -271,6 +245,8 @@ class _PlaylistSheetState extends ConsumerState<PlaylistSheet>
       scrollController: scrollController,
       itemCount: playlist.length,
       onReorder: _handleReorder,
+      // 仅 ReorderableDragStartListener（手柄）能拖，整行长按不再触发
+      buildDefaultDragHandles: false,
       proxyDecorator: (child, index, animation) {
         return AnimatedBuilder(
           animation: animation,
@@ -297,27 +273,53 @@ class _PlaylistSheetState extends ConsumerState<PlaylistSheet>
         final music = playlist[index];
         final isPlaying = index == currentIndex;
 
-        return PlaylistItem(
-          key: ValueKey(index),
-          music: music,
-          index: index,
-          isPlaying: isPlaying,
-          isFavorite: ref
-              .read(playbackCommandsProvider.notifier)
-              .isFavorite(music),
-          onTap: () {
-            widget.onTrackSelect(index);
+        return Dismissible(
+          // 用 music.id + cid 作稳定键：列表收缩后，已 dismiss 元素的 key 不会
+          // 与下一元素撞车，避免 element 复用导致 _dismissed 状态泄漏
+          key: ValueKey('dismiss-${music.id}-${music.cid}'),
+          direction: DismissDirection.startToEnd,
+          dismissThresholds: const {DismissDirection.startToEnd: 0.55},
+          background: Container(
+            margin: const EdgeInsets.symmetric(vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.red,
+              borderRadius: BorderRadius.circular(AppTokens.radiusSm),
+            ),
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.only(left: 20),
+            child: const Icon(
+              Icons.delete_outline,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+          onDismissed: (_) {
+            ref
+                .read(playbackCommandsProvider.notifier)
+                .removeFromPlaylist(music);
           },
-          onFavoriteToggle: () async {
-            final commands = ref.read(playbackCommandsProvider.notifier);
-            if (commands.isFavorite(music)) {
-              await commands.removeFromFavorites(music);
-            } else {
-              await commands.addToFavorites(music);
-            }
-            setState(() {});
-          },
-          onDelete: () => _showDeleteConfirmation(context, music, index),
+          child: PlaylistItem(
+            key: ValueKey(index),
+            music: music,
+            index: index,
+            isPlaying: isPlaying,
+            isFavorite: ref
+                .read(playbackCommandsProvider.notifier)
+                .isFavorite(music),
+            onTap: () {
+              widget.onTrackSelect(index);
+            },
+            onFavoriteToggle: () async {
+              final commands = ref.read(playbackCommandsProvider.notifier);
+              if (commands.isFavorite(music)) {
+                await commands.removeFromFavorites(music);
+              } else {
+                await commands.addToFavorites(music);
+              }
+              setState(() {});
+            },
+            onDelete: () {},
+          ),
         );
       },
     );

@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:bilimusic/models/music.dart';
+import 'package:bilimusic/utils/music_category.dart';
 import 'package:bilimusic/utils/network_config.dart';
 import 'package:bilimusic/services/playlist_service.dart';
 
@@ -83,7 +84,7 @@ class RecommendationManager {
 
               // 检查是否属于音乐分区 (tid 为音乐主分区或其子分区)
               final tid = video['tid'] as int?;
-              if (_isMusicCategory(tid)) {
+              if (isMusicCategory(tid)) {
                 final id = video['bvid'] ?? video['aid'].toString();
 
                 // 避免重复
@@ -126,29 +127,6 @@ class RecommendationManager {
         _guessYouLikeList,
       );
     }
-  }
-
-  /// 判断是否为音乐分类
-  bool _isMusicCategory(int? tid) {
-    if (tid == null) return false;
-
-    // 音乐主分区和子分区的tid
-    const musicTids = {
-      3,
-      28,
-      29,
-      30,
-      31,
-      59,
-      130,
-      193,
-      243,
-      244,
-      265,
-      266,
-      267,
-    };
-    return musicTids.contains(tid);
   }
 
   /// 更新推荐列表

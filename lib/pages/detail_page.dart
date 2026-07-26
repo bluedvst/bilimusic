@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:bilimusic/components/lyric/lyric_source.dart';
+import 'package:bilimusic/components/playlist/playlist_sheet.dart';
 import 'package:bilimusic/core/app_providers.dart';
 import 'package:bilimusic/models/music.dart' as model;
 import 'package:bilimusic/models/player_state.dart';
@@ -24,32 +26,24 @@ class DetailPage extends ConsumerStatefulWidget {
   ConsumerState<DetailPage> createState() => _DetailPageState();
 }
 
-class _DetailPageState extends ConsumerState<DetailPage>
-    with TickerProviderStateMixin {
+class _DetailPageState extends ConsumerState<DetailPage> {
   late model.Music _music;
   Duration _position = Duration.zero;
   Duration? _duration;
 
   // 歌词相关变量
-  List<LyricInfo> _lyricOptions = [];
+  List<LyricSource> _lyricSources = [];
   String? _selectedLyricId;
   LyricParser? _lyricParser;
   bool _isLoadingLyrics = false;
   bool _showLyrics = false;
 
-  // 背景颜色相关变量
+  // 背景颜色
   Color? _dominantColor;
-  Color? _vibrantColor;
-  late AnimationController _colorAnimationController;
 
   @override
   void initState() {
     super.initState();
-
-    _colorAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
 
     // 初始化音乐信息
     final currentMusic =
@@ -77,20 +71,15 @@ class _DetailPageState extends ConsumerState<DetailPage>
     setState(() => _isLoadingLyrics = true);
 
     try {
-      final localOption = LyricInfo(
-        id: 'local',
-        name: _music.title,
-        artist: _music.artist,
-      );
+      final localOption = LyricSource(id: 'local', name: _music.title);
       final neteaseOptions = await NeteaseMusicApi.searchMusic(_music.title);
 
       if (mounted) {
         setState(() {
-          _lyricOptions = [
+          _lyricSources = [
             localOption,
             ...neteaseOptions.map(
-              (info) =>
-                  LyricInfo(id: info.id, name: info.name, artist: info.artist),
+              (info) => LyricSource(id: info.id, name: info.name),
             ),
           ];
           _isLoadingLyrics = false;
@@ -99,9 +88,7 @@ class _DetailPageState extends ConsumerState<DetailPage>
     } catch (e) {
       if (mounted) {
         setState(() {
-          _lyricOptions = [
-            LyricInfo(id: 'local', name: _music.title, artist: _music.artist),
-          ];
+          _lyricSources = [LyricSource(id: 'local', name: _music.title)];
           _isLoadingLyrics = false;
         });
       }
@@ -141,11 +128,6 @@ class _DetailPageState extends ConsumerState<DetailPage>
     if (mounted && color != null) {
       setState(() {
         _dominantColor = color;
-        _vibrantColor = HSLColor.fromColor(color)
-            .withLightness(
-              (HSLColor.fromColor(color).lightness + 0.2).clamp(0, 1),
-            )
-            .toColor();
       });
     }
   }
@@ -156,18 +138,8 @@ class _DetailPageState extends ConsumerState<DetailPage>
     if (mounted && color != null) {
       setState(() {
         _dominantColor = color;
-        _vibrantColor = HSLColor.fromColor(color)
-            .withLightness(
-              (HSLColor.fromColor(color).lightness + 0.2).clamp(0, 1),
-            )
-            .toColor();
       });
     }
-  }
-
-  void _scrollToCurrentLyric() {
-    if (_lyricParser == null || _lyricParser!.lines.isEmpty) return;
-    // Lyric scrolling is handled in PortraitDetailPage
   }
 
   void _toggleFavorite() async {
@@ -212,14 +184,22 @@ class _DetailPageState extends ConsumerState<DetailPage>
     setState(() => _showLyrics = !_showLyrics);
   }
 
-  void _seek(Duration duration) {
-    ref.read(playbackCommandsProvider.notifier).seek(duration);
+  void _showPlaylist() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => PlaylistSheet(
+        onTrackSelect: (index) {
+          ref.read(playbackCommandsProvider.notifier).playAtIndex(index);
+          Navigator.pop(context);
+        },
+      ),
+    );
   }
 
-  @override
-  void dispose() {
-    _colorAnimationController.dispose();
-    super.dispose();
+  void _seek(Duration duration) {
+    ref.read(playbackCommandsProvider.notifier).seek(duration);
   }
 
   @override
@@ -246,7 +226,6 @@ class _DetailPageState extends ConsumerState<DetailPage>
     }
 
     _position = position;
-    if (_showLyrics) _scrollToCurrentLyric();
 
     final isPlaying = ps is PlayerPlaying;
     final fading = ps is PlayerPlaying && ps.fadeCountdown != null;
@@ -267,12 +246,11 @@ class _DetailPageState extends ConsumerState<DetailPage>
         duration: _duration,
         isPlaying: isPlaying,
         showLyrics: _showLyrics,
-        lyricOptions: _lyricOptions,
+        lyricSources: _lyricSources,
         selectedLyricId: _selectedLyricId,
         lyricParser: _lyricParser,
         isLoadingLyrics: _isLoadingLyrics,
         dominantColor: _dominantColor,
-        vibrantColor: _vibrantColor,
         playModeIcon: icon,
         isTransitioning: fading,
         onToggleFavorite: _toggleFavorite,
@@ -291,18 +269,18 @@ class _DetailPageState extends ConsumerState<DetailPage>
       duration: _duration,
       isPlaying: isPlaying,
       showLyrics: _showLyrics,
-      lyricOptions: _lyricOptions,
+      lyricSources: _lyricSources,
       selectedLyricId: _selectedLyricId,
       lyricParser: _lyricParser,
       isLoadingLyrics: _isLoadingLyrics,
       dominantColor: _dominantColor,
-      vibrantColor: _vibrantColor,
       playModeIcon: icon,
       isTransitioning: fading,
       onToggleFavorite: _toggleFavorite,
       onShare: _shareMusic,
       onTogglePlay: _togglePlay,
       onToggleShowLyrics: _toggleShowLyrics,
+      onPlaylist: _showPlaylist,
       onLoadLyric: _loadLyric,
       onSeek: _seek,
       onTogglePlayMode: togglePlayMode,

@@ -11,7 +11,6 @@ import 'package:bilimusic/utils/netease_music_api.dart';
 import 'package:bilimusic/utils/responsive.dart';
 import 'package:bilimusic/components/landscape/background.dart';
 import 'package:bilimusic/components/landscape/album_section.dart';
-import 'package:bilimusic/pages/detail/widgets/controls_bar.dart';
 import 'package:bilimusic/components/lyric/lyric_section.dart';
 import 'package:bilimusic/components/lyric/lyric_source.dart';
 import 'package:bilimusic/components/playlist/playlist_sheet.dart';
@@ -239,21 +238,19 @@ class _LandscapeDetailPageState extends ConsumerState<LandscapeDetailPage>
     _position = position;
 
     final isPlaying = ps is PlayerPlaying;
-    final fading = ps is PlayerPlaying && ps.fadeCountdown != null;
     final icon = switch (mode) {
       PlayMode.sequential => Icons.repeat,
       PlayMode.loop => Icons.repeat_one,
       PlayMode.shuffle => Icons.shuffle,
     };
 
-    return _buildScaffold(context, leftRatio, isPlaying, fading, icon);
+    return _buildScaffold(context, leftRatio, isPlaying, icon);
   }
 
   Widget _buildScaffold(
     BuildContext context,
     double leftRatio,
     bool isPlaying,
-    bool fading,
     IconData icon,
   ) {
     return Scaffold(
@@ -275,7 +272,7 @@ class _LandscapeDetailPageState extends ConsumerState<LandscapeDetailPage>
                   children: [
                     SizedBox(
                       width: MediaQuery.of(context).size.width * leftRatio,
-                      child: AnimatedLandscapeAlbumSection(
+                      child: LandscapeAlbumSection(
                         coverUrl: _music.coverUrl,
                         title: _music.title,
                         artist: _music.artist,
@@ -285,6 +282,20 @@ class _LandscapeDetailPageState extends ConsumerState<LandscapeDetailPage>
                         trackId: _music.id,
                         onFavoritePressed: _toggleFavorite,
                         onSharePressed: _shareMusic,
+                        // 播放控制（已迁移到左列）
+                        isPlaying: isPlaying,
+                        playModeIcon: icon,
+                        onPlayPause: _togglePlay,
+                        onPrevious: () => ref
+                            .read(playbackCommandsProvider.notifier)
+                            .playPrevious(),
+                        onNext: () => ref
+                            .read(playbackCommandsProvider.notifier)
+                            .playNext(),
+                        onPlayModeToggle: () => ref
+                            .read(playbackCommandsProvider.notifier)
+                            .togglePlayMode(),
+                        onPlaylist: _showPlaylist,
                       ),
                     ),
                     Expanded(
@@ -297,6 +308,7 @@ class _LandscapeDetailPageState extends ConsumerState<LandscapeDetailPage>
                         lyricSources: _lyricSources,
                         selectedLyricId: _selectedLyricId,
                         isLoadingLyrics: _isLoadingLyrics,
+                        showHeader: false,
                         onLyricSourceChanged: _loadLyric,
                         onLyricTap: (duration) {
                           ref
@@ -307,24 +319,6 @@ class _LandscapeDetailPageState extends ConsumerState<LandscapeDetailPage>
                     ),
                   ],
                 ),
-              ),
-              LandscapeControlsBar(
-                position: _position,
-                duration: _duration,
-                isPlaying: isPlaying,
-                playModeIcon: icon,
-                onPlayPause: _togglePlay,
-                onPrevious: () =>
-                    ref.read(playbackCommandsProvider.notifier).playPrevious(),
-                onNext: () =>
-                    ref.read(playbackCommandsProvider.notifier).playNext(),
-                onPlayModeToggle: () => ref
-                    .read(playbackCommandsProvider.notifier)
-                    .togglePlayMode(),
-                onPlaylist: _showPlaylist,
-                onSeek: (duration) =>
-                    ref.read(playbackCommandsProvider.notifier).seek(duration),
-                isTransitioning: fading,
               ),
             ],
           ),

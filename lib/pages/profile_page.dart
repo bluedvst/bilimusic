@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bilimusic/components/long_press_menu.dart';
 import 'package:bilimusic/core/app_providers.dart';
 import 'package:bilimusic/managers/user_manager.dart';
 import 'package:bilimusic/models/music.dart';
@@ -9,6 +10,9 @@ import 'package:bilimusic/utils/network_config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:bilimusic/shells/shell_page_manager.dart';
 import 'package:bilimusic/providers/playlist_providers.dart';
+import 'package:bilimusic/pages/profile/widgets/roam_section.dart';
+import 'package:bilimusic/pages/profile/widgets/lansync_section.dart';
+import 'package:super_context_menu/super_context_menu.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -359,6 +363,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           },
         ),
 
+        const Divider(height: 1),
+
+        // 漫游模式
+        const RoamSection(),
+
+        const Divider(height: 1),
+
+        // 局域网同步
+        const LanSyncSection(),
+
         // Bilibili 收藏夹同步（仅登录后显示）
         if (ref.read(userManagerProvider).isLoggedIn) ...[
           const Divider(height: 1),
@@ -379,6 +393,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             },
           ),
         ],
+        const SizedBox(height: 80),
       ],
     );
   }
@@ -455,7 +470,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                 .getPlaylistSongs(playlist.id),
                             builder: (context, snapshot) {
                               final songCount = snapshot.data?.length ?? 0;
-                              return ListTile(
+                              final tile = ListTile(
                                 leading: const Icon(Icons.queue_music),
                                 title: Text(playlist.name),
                                 subtitle: Text('$songCount 首歌曲'),
@@ -467,6 +482,21 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                     );
                                   }
                                 },
+                              );
+                              if (playlist.isDefault) return tile;
+                              return ContextMenuWidget(
+                                menuProvider: (_) => buildPlaylistContextMenu(
+                                  context: context,
+                                  playlist: playlist,
+                                  onDelete: () => confirmAndDeletePlaylist(
+                                    context: context,
+                                    playlist: playlist,
+                                    commands: ref.read(
+                                      playlistCommandsProvider.notifier,
+                                    ),
+                                  ),
+                                ),
+                                child: tile,
                               );
                             },
                           );

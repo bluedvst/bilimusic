@@ -16,6 +16,7 @@ class LyricSection extends StatefulWidget {
   final List<LyricSource> lyricSources;
   final String? selectedLyricId;
   final bool isLoadingLyrics;
+  final bool showHeader;
   final Function(String)? onLyricSourceChanged;
   final Function(Duration)? onLyricTap;
 
@@ -29,6 +30,7 @@ class LyricSection extends StatefulWidget {
     this.lyricSources = const [],
     this.selectedLyricId,
     this.isLoadingLyrics = false,
+    this.showHeader = true,
     this.onLyricSourceChanged,
     this.onLyricTap,
   });
@@ -77,7 +79,7 @@ class _LyricSectionState extends State<LyricSection> {
       final index = widget.lyricParser!.lines.indexOf(currentLine);
       if (index != -1) {
         final isLandscape = _isLandscapeMode();
-        final lineHeight = isLandscape ? 52.0 : 48.0;
+        final lineHeight = isLandscape ? 66.0 : 48.0;
         final viewportHeight = _scrollController.position.viewportDimension;
         final targetPosition =
             index * lineHeight - (viewportHeight * 0.35) + (lineHeight / 2);
@@ -113,182 +115,160 @@ class _LyricSectionState extends State<LyricSection> {
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: padding),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          _buildSongInfoHeader(),
-          const SizedBox(height: 24),
-          if (!widget.isLoadingLyrics) _buildLyricSourceSelector(),
-          const SizedBox(height: 16),
-          Expanded(child: _buildLyricContent()),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (widget.showHeader) ...[
+                _buildSongInfoHeader(),
+                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+              ],
+              Expanded(child: _buildLyricContent()),
+            ],
+          ),
+          if (!widget.isLoadingLyrics && widget.lyricSources.isNotEmpty)
+            Positioned(right: 0, bottom: 16, child: _buildLyricSourceButton()),
         ],
+      ),
+    );
+  }
+
+  /// 歌词区右下角浮动玻璃材质的歌词源切换按钮。
+  /// 横竖屏共用 —— 替代内嵌 Dropdown。
+  Widget _buildLyricSourceButton() {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: PopupMenuButton<String>(
+          initialValue: widget.selectedLyricId,
+          color: Colors.grey[900]!.withValues(alpha: 0.95),
+          tooltip: '歌词来源',
+          onSelected: (id) => widget.onLyricSourceChanged?.call(id),
+          itemBuilder: (context) {
+            return widget.lyricSources.map((source) {
+              final selected = source.id == widget.selectedLyricId;
+              return PopupMenuItem<String>(
+                value: source.id,
+                child: Row(
+                  children: [
+                    Icon(
+                      selected ? Icons.check : null,
+                      size: 18,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      source.name,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList();
+          },
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.15),
+                width: 1,
+              ),
+            ),
+            child: Icon(
+              Icons.lyrics_outlined,
+              color: Colors.white.withValues(alpha: 0.7),
+              size: 22,
+            ),
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildPortraitLayout() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey[900] : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 20,
-            spreadRadius: 5,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Stack(
         children: [
-          _buildPortraitHeader(),
-          const SizedBox(height: 16),
-          Expanded(child: _buildLyricContent()),
-          const SizedBox(height: 12),
-          _buildPortraitFooter(),
+          SafeArea(
+            bottom: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 8),
+                _buildSongInfoHeader(),
+                const SizedBox(height: 20),
+                Expanded(child: _buildLyricContent()),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+          if (!widget.isLoadingLyrics && widget.lyricSources.isNotEmpty)
+            Positioned(right: 0, bottom: 24, child: _buildLyricSourceButton()),
         ],
       ),
-    );
-  }
-
-  Widget _buildPortraitHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.lyrics, color: Theme.of(context).primaryColor),
-            const SizedBox(width: 8),
-            Text(
-              '歌词',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white
-                    : Colors.grey[900],
-              ),
-            ),
-          ],
-        ),
-        if (widget.selectedLyricId != null) _buildLyricSourceSelector(),
-      ],
-    );
-  }
-
-  Widget _buildPortraitFooter() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(
-          Icons.touch_app,
-          size: 16,
-          color: Theme.of(context).primaryColor.withValues(alpha: 0.7),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          '点击歌词可跳转播放',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.grey[400]
-                : Colors.grey[600],
-          ),
-        ),
-      ],
     );
   }
 
   Widget _buildSongInfoHeader() {
+    final isLandscape = _isLandscapeMode();
+    final titleSize = isLandscape ? 32.0 : 22.0;
+    final artistSize = isLandscape ? 20.0 : 16.0;
+    final albumSize = isLandscape ? 16.0 : 13.0;
+    final alignment = isLandscape
+        ? CrossAxisAlignment.start
+        : CrossAxisAlignment.center;
+    final textAlign = isLandscape ? TextAlign.left : TextAlign.center;
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: alignment,
       children: [
         Text(
           widget.title ?? '',
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.white,
-            fontSize: 32,
+            fontSize: titleSize,
             fontWeight: FontWeight.bold,
             letterSpacing: -0.5,
             height: 1.2,
           ),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
+          textAlign: textAlign,
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Text(
           widget.artist ?? '',
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.7),
-            fontSize: 20,
+            fontSize: artistSize,
             fontWeight: FontWeight.w400,
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
+          textAlign: textAlign,
         ),
         const SizedBox(height: 4),
         Text(
           widget.album ?? '',
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.45),
-            fontSize: 16,
+            fontSize: albumSize,
             fontWeight: FontWeight.w400,
           ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
+          textAlign: textAlign,
         ),
       ],
-    );
-  }
-
-  Widget _buildLyricSourceSelector() {
-    if (widget.lyricSources.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.15),
-              width: 1,
-            ),
-          ),
-          child: DropdownButton<String>(
-            value: widget.selectedLyricId,
-            dropdownColor: Colors.grey[900]!.withValues(alpha: 0.95),
-            underline: const SizedBox(),
-            icon: Icon(
-              Icons.arrow_drop_down,
-              color: Colors.white.withValues(alpha: 0.7),
-            ),
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.9),
-              fontSize: 14,
-            ),
-            items: widget.lyricSources.map((source) {
-              return DropdownMenuItem<String>(
-                value: source.id,
-                child: Text(source.name),
-              );
-            }).toList(),
-            onChanged: (id) {
-              if (id != null) {
-                widget.onLyricSourceChanged?.call(id);
-              }
-            },
-          ),
-        ),
-      ),
     );
   }
 
@@ -309,75 +289,31 @@ class _LyricSectionState extends State<LyricSection> {
   }
 
   Widget _buildLoadingState() {
-    final isLandscape = _isLandscapeMode();
-
-    if (isLandscape) {
-      return Center(
-        child: CircularProgressIndicator(
-          color: Colors.white.withValues(alpha: 0.6),
-          strokeWidth: 2,
-        ),
-      );
-    }
-
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircularProgressIndicator(color: Theme.of(context).primaryColor),
-          const SizedBox(height: 16),
-          Text(
-            '加载歌词中...',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(color: Theme.of(context).hintColor),
-          ),
-        ],
+      child: CircularProgressIndicator(
+        color: Colors.white.withValues(alpha: 0.6),
+        strokeWidth: 2,
       ),
     );
   }
 
   Widget _buildEmptyState(String message) {
-    final isLandscape = _isLandscapeMode();
-
-    if (isLandscape) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.lyrics_outlined,
-              size: 48,
-              color: Colors.white.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.5),
-                fontSize: 16,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.music_note,
+            Icons.lyrics_outlined,
             size: 48,
-            color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
+            color: Colors.white.withValues(alpha: 0.3),
           ),
           const SizedBox(height: 16),
           Text(
             message,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(color: Theme.of(context).hintColor),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.5),
+              fontSize: 14,
+            ),
           ),
         ],
       ),
@@ -385,26 +321,41 @@ class _LyricSectionState extends State<LyricSection> {
   }
 
   Widget _buildLyricList() {
+    final lines = widget.lyricParser!.lines;
     final currentLine = widget.lyricParser!.getCurrentLine(
       widget.position.inMilliseconds / 1000,
     );
     final isLandscape = _isLandscapeMode();
     final currentFontSize = isLandscape
         ? LandscapeBreakpoints.getCurrentLyricFontSize(context)
-        : 20.0;
+        : 22.0;
     final otherFontSize = isLandscape
         ? LandscapeBreakpoints.getOtherLyricFontSize(context)
         : 16.0;
+
+    // 当前行专用：endTime 取下一行的时间戳；末行给 fallback 4s 让填充走完。
+    const endFallbackSec = 4.0;
 
     return ListView.builder(
       controller: _scrollController,
       padding: EdgeInsets.symmetric(
         vertical: MediaQuery.of(context).size.height * 0.25,
       ),
-      itemCount: widget.lyricParser!.lines.length,
+      itemCount: lines.length,
       itemBuilder: (context, index) {
-        final line = widget.lyricParser!.lines[index];
+        final line = lines[index];
         final isCurrentLine = line == currentLine;
+
+        Duration startTime = Duration.zero;
+        Duration endTime = Duration.zero;
+        if (isCurrentLine) {
+          final startSec = line.time;
+          final endSec = (index + 1 < lines.length)
+              ? lines[index + 1].time
+              : startSec + endFallbackSec;
+          startTime = Duration(milliseconds: (startSec * 1000).round());
+          endTime = Duration(milliseconds: (endSec * 1000).round());
+        }
 
         return LyricLineWidget(
           line: line,
@@ -412,6 +363,9 @@ class _LyricSectionState extends State<LyricSection> {
           currentFontSize: currentFontSize,
           otherFontSize: otherFontSize,
           onTap: widget.onLyricTap,
+          startTime: startTime,
+          endTime: endTime,
+          currentPosition: widget.position,
         );
       },
     );

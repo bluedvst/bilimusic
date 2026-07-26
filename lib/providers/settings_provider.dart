@@ -21,6 +21,8 @@ class SettingsState {
   final bool crossfadeEnabled;
   final int crossfadeDuration;
   final int preloadSeconds;
+  final String lanSyncMode;
+  final String lanSyncDeviceName;
 
   const SettingsState({
     this.notificationsEnabled = true,
@@ -36,6 +38,8 @@ class SettingsState {
     this.crossfadeEnabled = false,
     this.crossfadeDuration = 3000,
     this.preloadSeconds = 10,
+    this.lanSyncMode = 'off',
+    this.lanSyncDeviceName = '',
   });
 
   SettingsState copyWith({
@@ -52,6 +56,8 @@ class SettingsState {
     bool? crossfadeEnabled,
     int? crossfadeDuration,
     int? preloadSeconds,
+    String? lanSyncMode,
+    String? lanSyncDeviceName,
   }) {
     return SettingsState(
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
@@ -67,6 +73,8 @@ class SettingsState {
       crossfadeEnabled: crossfadeEnabled ?? this.crossfadeEnabled,
       crossfadeDuration: crossfadeDuration ?? this.crossfadeDuration,
       preloadSeconds: preloadSeconds ?? this.preloadSeconds,
+      lanSyncMode: lanSyncMode ?? this.lanSyncMode,
+      lanSyncDeviceName: lanSyncDeviceName ?? this.lanSyncDeviceName,
     );
   }
 }
@@ -91,6 +99,8 @@ class SettingsNotifier extends Notifier<SettingsState> {
       crossfadeEnabled: s.crossfadeEnabled,
       crossfadeDuration: s.crossfadeDuration,
       preloadSeconds: s.preloadSeconds,
+      lanSyncMode: s.lanSyncMode,
+      lanSyncDeviceName: s.lanSyncDeviceName,
     );
   }
 
@@ -110,6 +120,8 @@ class SettingsNotifier extends Notifier<SettingsState> {
       crossfadeEnabled: s.crossfadeEnabled,
       crossfadeDuration: s.crossfadeDuration,
       preloadSeconds: s.preloadSeconds,
+      lanSyncMode: s.lanSyncMode,
+      lanSyncDeviceName: s.lanSyncDeviceName,
     );
   }
 
@@ -189,6 +201,17 @@ class SettingsNotifier extends Notifier<SettingsState> {
     final finalValue = clamped < crossfadeSec ? crossfadeSec : clamped;
     state = state.copyWith(preloadSeconds: finalValue);
     await _save('preload_seconds', finalValue);
+  }
+
+  Future<void> setLanSyncMode(String? value) async {
+    if (value == null) return;
+    state = state.copyWith(lanSyncMode: value);
+    await _save('lan_sync_mode', value);
+  }
+
+  Future<void> setLanSyncDeviceName(String value) async {
+    state = state.copyWith(lanSyncDeviceName: value);
+    await _save('lan_sync_device_name', value);
   }
 
   Future<void> _save(String key, dynamic value) async {

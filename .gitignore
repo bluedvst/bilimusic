@@ -46,6 +46,10 @@ app.*.map.json
 /android/app/release
 /android/app/keystore.jks
 
+# web sqlite3 package
+/web/sqlite3.wasm
+/web/sqflite_sw.js
+
 # other
 bilibili-API-collect/
 ParticleMusic/

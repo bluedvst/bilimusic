@@ -210,11 +210,14 @@ class ApiService {
     SearchResultType? type,
   }) async {
     try {
-      final data = await _client.getJson(
+      final data = await _client.get(
         '/x/web-interface/search/all/v2',
         query: {'keyword': query},
       );
-      return _parseSearchResults(data, query);
+      return _parseSearchResults(
+        data is Map<String, dynamic> ? data : const {},
+        query,
+      );
     } on BiliApiException catch (e) {
       if (e.code == -101) {
         debugPrint('[ApiService] search($query): not logged in');

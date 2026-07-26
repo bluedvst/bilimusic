@@ -72,7 +72,9 @@ class NotificationService {
       if (isPlaying) MediaControl.pause else MediaControl.play,
       MediaControl.skipToNext,
       MediaControl(
-        androidIcon: 'drawable/ic_favorite',
+        androidIcon: isFavorite
+            ? 'drawable/ic_favorite'
+            : 'drawable/ic_favorite_border',
         label: isFavorite ? '取消收藏' : '收藏',
         action: MediaAction.custom,
         customAction: const CustomMediaAction(name: 'favorite'),
