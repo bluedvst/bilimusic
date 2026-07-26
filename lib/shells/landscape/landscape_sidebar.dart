@@ -8,7 +8,9 @@ import 'package:super_context_menu/super_context_menu.dart';
 
 /// 横屏模式新侧边栏 - 基于ParticleMusic风格
 class LandscapeSidebar extends ConsumerWidget {
-  final String selectedLabel;
+  /// 顶层导航(发现/搜索/设置)当前高亮标签；进入歌单页时为 null，
+  /// 使任何顶层导航项都不显示高亮，让被点击的歌单独占视觉焦点。
+  final String? selectedLabel;
   final List<Playlist> playlists;
   final String? selectedPlaylistId;
   final Function(String label) onNavTap;

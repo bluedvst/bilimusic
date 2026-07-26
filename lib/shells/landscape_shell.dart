@@ -126,7 +126,14 @@ class LandscapeShell extends ConsumerWidget {
     );
   }
 
-  String _getSelectedLabel() {
+  /// 当前应高亮的顶层导航项。
+  /// 在歌单页时返回 null —— `ShellPageManager.selectedTabIndex` 对
+  /// `ShellPage.playlist` 退化到 home 索引，所以这里要根据 currentPage
+  /// 直接判断，避免出现"在歌单页却仍高亮发现"的视觉残留。
+  String? _getSelectedLabel() {
+    if (pageManager.currentPage == ShellPage.playlist) {
+      return null;
+    }
     final index = pageManager.selectedTabIndex;
     switch (index) {
       case 0:
