@@ -27,6 +27,11 @@ class ShellPageManager extends ChangeNotifier {
   final List<ShellPage> _pageStack = [ShellPage.home];
   final Map<String, dynamic> _pageArgs = {};
 
+  /// 每次 [goToPlaylist] 自增，用来让 LandscapeShell 在同一 playlist 上重复点击
+  /// 时区分不同的 push 实例，使 KeyedSubtree 重新创建 widget 并触发入场动画。
+  int _playlistNavGen = 0;
+  int get playlistNavGen => _playlistNavGen;
+
   ShellPage get currentPage => _pageStack.last;
   bool get canPop => _pageStack.length > 1;
 
@@ -111,6 +116,7 @@ class ShellPageManager extends ChangeNotifier {
     List<Music>? songs,
     String? playlistName,
   }) {
+    _playlistNavGen++;
     push(
       ShellPage.playlist,
       args: {

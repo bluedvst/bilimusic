@@ -51,7 +51,11 @@ class LandscapeShell extends ConsumerWidget {
                       child: Material(
                         color: sidebarSurface.withValues(alpha: 0.2),
                         child: shellPageSwitcher(
-                          key: ValueKey(pageManager.basePage),
+                          key: ValueKey(
+                            pageManager.basePage == ShellPage.playlist
+                                ? 'playlist-${pageManager.playlistNavGen}'
+                                : pageManager.basePage.name,
+                          ),
                           child: buildShellPageContent(
                             page: pageManager.basePage,
                             pageManager: pageManager,
