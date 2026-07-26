@@ -62,10 +62,18 @@ class DeviceTile extends StatelessWidget {
         foregroundColor: _platformColor(peer.platform),
         child: Icon(_platformIcon(peer.platform), size: 20),
       ),
-      title: Text(
-        peer.name,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+      title: Row(
+        children: [
+          Text(
+            peer.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(width: 6),
+          if (peer.mode != LanSyncMode.off) ...[
+            _ModeChip(peer.mode),
+          ],
+        ]
       ),
       subtitle: Row(
         children: [
@@ -77,10 +85,6 @@ class DeviceTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 6),
-          if (peer.mode != LanSyncMode.off) ...[
-            _ModeChip(peer.mode),
-            const SizedBox(width: 6),
-          ],
           _StatusDot(color: statusColor),
           const SizedBox(width: 4),
           Text(
@@ -98,11 +102,9 @@ class DeviceTile extends StatelessWidget {
       case _TileState.unpaired:
         return ('未配对', cs.onSurfaceVariant);
       case _TileState.pairedDisconnected:
-        return ('已配对 · 未连接', Colors.amber);
-      case _TileState.connectedPrivate:
-        return ('已连接 · 私有', Colors.green);
-      case _TileState.connectedPublic:
-        return ('已连接 · 公共', Colors.green);
+        return ('未连接', Colors.amber);
+      case _TileState.connectedPrivate || _TileState.connectedPublic:
+        return ('已连接', Colors.green);
     }
   }
 
@@ -204,7 +206,7 @@ IconData _platformIcon(String platform) {
     'windows' => Icons.laptop_windows,
     'macos' => Icons.laptop_mac,
     'linux' => Icons.computer,
-    _ => Icons.devices,
+    _ => Icons.device_unknown,
   };
 }
 
