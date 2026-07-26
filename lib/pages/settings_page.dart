@@ -219,7 +219,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
             // 局域网同步（仅非 Web 显示）
             if (!PlatformHelper.isWeb) ...[
-              _buildSectionTitle('局域网同步'),
+              _buildSectionTitle('局域网同步 (Beta)'),
               ListTile(
                 leading: Icon(Icons.wifi_tethering, color: _getPrimaryColor(context)),
                 title: const Text('同步模式'),
@@ -351,7 +351,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     showAboutDialog(
       context: context,
       applicationName: 'BiliMusic',
-      applicationVersion: '1.7.0',
+      applicationVersion: '1.8.0',
       applicationIcon: Image.asset(
         "assets/ic_launcher.png",
         width: 84,
