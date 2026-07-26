@@ -85,8 +85,10 @@ class TextSimHash {
   ///
   /// 比逐字符比较快约 10x。
   static int hammingFast(String a, String b) {
-    assert(a.length == dimensions && b.length == dimensions,
-        'SimHash 位串长度必须为 $dimensions');
+    assert(
+      a.length == dimensions && b.length == dimensions,
+      'SimHash 位串长度必须为 $dimensions',
+    );
     final hiA = _parseBits64(a.substring(0, 64));
     final loA = _parseBits64(a.substring(64, 128));
     final hiB = _parseBits64(b.substring(0, 64));

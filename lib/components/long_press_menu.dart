@@ -200,15 +200,14 @@ Menu _buildPushToDeviceSubmenu(BuildContext context, Music music) {
     final container = ProviderScope.containerOf(context);
     final peersAsync = container.read(peersProvider);
     final peers = peersAsync.asData?.value ?? const <PeerDevice>[];
-    eligible = peers
-        .where(
-          (p) =>
-              p.isPaired &&
-              p.isConnected &&
-              p.mode == LanSyncMode.private,
-        )
-        .toList()
-      ..sort((a, b) => a.name.compareTo(b.name));
+    eligible =
+        peers
+            .where(
+              (p) =>
+                  p.isPaired && p.isConnected && p.mode == LanSyncMode.private,
+            )
+            .toList()
+          ..sort((a, b) => a.name.compareTo(b.name));
   } catch (_) {
     // riverpod 不可用（如 widget 被脱离 ProviderScope 测试）—— 当作无可用设备
     eligible = const [];
@@ -243,7 +242,9 @@ Future<void> _pushToDevice(
 ) async {
   if (!context.mounted) return;
   final messenger = ScaffoldMessenger.of(context);
-  final lanSvc = ProviderScope.containerOf(context).read(lanSyncServiceProvider);
+  final lanSvc = ProviderScope.containerOf(
+    context,
+  ).read(lanSyncServiceProvider);
   try {
     final detailed = await music.getVideoDetails();
     lanSvc.pushMusicToPeer(peer.id, detailed);
@@ -251,9 +252,7 @@ Future<void> _pushToDevice(
       SnackBar(content: Text('已推送到"${peer.name}"：${detailed.title}')),
     );
   } catch (e) {
-    messenger.showSnackBar(
-      SnackBar(content: Text('推送失败: $e')),
-    );
+    messenger.showSnackBar(SnackBar(content: Text('推送失败: $e')));
   }
 }
 
@@ -378,8 +377,8 @@ Future<void> confirmAndDeletePlaylist({
   final name = playlist.name;
   await commands.deletePlaylist(playlist.id);
   if (context.mounted) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('已删除歌单"$name"')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('已删除歌单"$name"')));
   }
 }

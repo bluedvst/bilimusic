@@ -221,7 +221,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             if (!PlatformHelper.isWeb) ...[
               _buildSectionTitle('局域网同步 (Beta)'),
               ListTile(
-                leading: Icon(Icons.wifi_tethering, color: _getPrimaryColor(context)),
+                leading: Icon(
+                  Icons.wifi_tethering,
+                  color: _getPrimaryColor(context),
+                ),
                 title: const Text('同步模式'),
                 subtitle: Text(_lanSyncModeText(settings.lanSyncMode)),
                 trailing: DropdownButton<String>(

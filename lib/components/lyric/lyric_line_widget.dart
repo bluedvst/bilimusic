@@ -48,10 +48,7 @@ class LyricLineWidget extends StatelessWidget {
     final dimTextColor = Colors.white.withValues(alpha: 0.45);
     final glowColor = Theme.of(context).primaryColor;
     final staticShadow = <Shadow>[
-      Shadow(
-        color: glowColor.withValues(alpha: 0.18),
-        blurRadius: 4,
-      ),
+      Shadow(color: glowColor.withValues(alpha: 0.18), blurRadius: 4),
     ];
 
     return GestureDetector(
@@ -83,10 +80,7 @@ class LyricLineWidget extends StatelessWidget {
                 )
               : Text(
                   line.content,
-                  style: TextStyle(
-                    color: dimTextColor,
-                    shadows: staticShadow,
-                  ),
+                  style: TextStyle(color: dimTextColor, shadows: staticShadow),
                 ),
         ),
       ),
@@ -174,8 +168,9 @@ class _ActiveLyricLineState extends State<_ActiveLyricLine>
     final spanSec = _spanSeconds();
     // 已收尾：保持最后一次 setState 显示，停止 ticker。
     final tSec = _estimatedTimeSeconds();
-    final progress =
-        spanSec <= 0 ? 1.0 : ((tSec - _startSeconds()) / spanSec).clamp(0.0, 1.0);
+    final progress = spanSec <= 0
+        ? 1.0
+        : ((tSec - _startSeconds()) / spanSec).clamp(0.0, 1.0);
     if (progress >= 1.0) {
       _stopped = true;
       _ticker.stop();
@@ -223,8 +218,9 @@ class _ActiveLyricLineState extends State<_ActiveLyricLine>
   Widget build(BuildContext context) {
     final spanSec = _spanSeconds();
     final tSec = _estimatedTimeSeconds();
-    final lineProgress =
-        spanSec <= 0 ? 1.0 : ((tSec - _startSeconds()) / spanSec).clamp(0.0, 1.0);
+    final lineProgress = spanSec <= 0
+        ? 1.0
+        : ((tSec - _startSeconds()) / spanSec).clamp(0.0, 1.0);
     final n = _chars.length;
     final revealed = lineProgress * n;
 
@@ -258,10 +254,7 @@ class _ActiveLyricLineState extends State<_ActiveLyricLine>
     return RepaintBoundary(
       child: Text.rich(
         TextSpan(
-          style: const TextStyle(
-            fontWeight: FontWeight.w700,
-            height: 1.5,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.w700, height: 1.5),
           children: children,
         ),
         textAlign: TextAlign.left,

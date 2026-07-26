@@ -129,11 +129,7 @@ class _LyricSectionState extends State<LyricSection> {
             ],
           ),
           if (!widget.isLoadingLyrics && widget.lyricSources.isNotEmpty)
-            Positioned(
-              right: 0,
-              bottom: 16,
-              child: _buildLyricSourceButton(),
-            ),
+            Positioned(right: 0, bottom: 16, child: _buildLyricSourceButton()),
         ],
       ),
     );
@@ -216,11 +212,7 @@ class _LyricSectionState extends State<LyricSection> {
             ),
           ),
           if (!widget.isLoadingLyrics && widget.lyricSources.isNotEmpty)
-            Positioned(
-              right: 0,
-              bottom: 24,
-              child: _buildLyricSourceButton(),
-            ),
+            Positioned(right: 0, bottom: 24, child: _buildLyricSourceButton()),
         ],
       ),
     );
@@ -231,7 +223,9 @@ class _LyricSectionState extends State<LyricSection> {
     final titleSize = isLandscape ? 32.0 : 22.0;
     final artistSize = isLandscape ? 20.0 : 16.0;
     final albumSize = isLandscape ? 16.0 : 13.0;
-    final alignment = isLandscape ? CrossAxisAlignment.start : CrossAxisAlignment.center;
+    final alignment = isLandscape
+        ? CrossAxisAlignment.start
+        : CrossAxisAlignment.center;
     final textAlign = isLandscape ? TextAlign.left : TextAlign.center;
 
     return Column(

@@ -124,19 +124,18 @@ class RoamConfig {
   static String _stripBv1(String bvid) =>
       bvid.startsWith('BV1') ? bvid.substring(3) : bvid;
 
-  static String _restoreBv1(String s) =>
-      s.startsWith('BV1') ? s : 'BV1$s';
+  static String _restoreBv1(String s) => s.startsWith('BV1') ? s : 'BV1$s';
 
   static String _styleCode(RoamStyle s) => switch (s) {
-        RoamStyle.similar => 's',
-        RoamStyle.balanced => 'b',
-        RoamStyle.explore => 'e',
-      };
+    RoamStyle.similar => 's',
+    RoamStyle.balanced => 'b',
+    RoamStyle.explore => 'e',
+  };
 
   static RoamStyle? _styleFromCode(String c) => switch (c) {
-        's' => RoamStyle.similar,
-        'b' => RoamStyle.balanced,
-        'e' => RoamStyle.explore,
-        _ => null,
-      };
+    's' => RoamStyle.similar,
+    'b' => RoamStyle.balanced,
+    'e' => RoamStyle.explore,
+    _ => null,
+  };
 }

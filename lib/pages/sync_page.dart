@@ -38,7 +38,10 @@ class _LanSyncPageState extends ConsumerState<LanSyncPage> {
   void initState() {
     super.initState();
     // 监听 PIN 请求：弹"对方请求配对"对话框
-    _pinSub = ref.read(lanSyncServiceProvider).pinRequests.listen(_onPinRequest);
+    _pinSub = ref
+        .read(lanSyncServiceProvider)
+        .pinRequests
+        .listen(_onPinRequest);
   }
 
   @override
@@ -51,10 +54,8 @@ class _LanSyncPageState extends ConsumerState<LanSyncPage> {
     if (!mounted) return;
     showDialog(
       context: context,
-      builder: (ctx) => PairRequestDialog(
-        peerId: req.peerId,
-        peerName: req.peerName,
-      ),
+      builder: (ctx) =>
+          PairRequestDialog(peerId: req.peerId, peerName: req.peerName),
     );
   }
 
@@ -210,9 +211,11 @@ class _LanSyncPageState extends ConsumerState<LanSyncPage> {
     if (result?.ok == true) {
       messenger.showSnackBar(SnackBar(content: Text('与 ${peer.name} 配对成功')));
     } else {
-      messenger.showSnackBar(SnackBar(
-        content: Text('与 ${peer.name} 配对失败：${result?.reason ?? "对方无响应"}'),
-      ));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('与 ${peer.name} 配对失败：${result?.reason ?? "对方无响应"}'),
+        ),
+      );
     }
   }
 }
@@ -308,23 +311,11 @@ class _SelfCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            _Field(
-              label: '设备名',
-              value: name,
-              onEdit: onChangeName,
-            ),
+            _Field(label: '设备名', value: name, onEdit: onChangeName),
             const SizedBox(height: 6),
-            _Field(
-              label: '平台',
-              value: platform,
-            ),
+            _Field(label: '平台', value: platform),
             const SizedBox(height: 6),
-            _Field(
-              label: 'ID',
-              value: id,
-              monospace: true,
-              copyValue: id,
-            ),
+            _Field(label: 'ID', value: id, monospace: true, copyValue: id),
             const SizedBox(height: 6),
             _Field(
               label: 'PIN',
@@ -457,9 +448,7 @@ class _WaitingForPeerDialogState extends ConsumerState<_WaitingForPeerDialog> {
   }
 
   void _onCancel() {
-    ref
-        .read(lanSyncServiceProvider)
-        .cancelInitiatedPairing(widget.peer.id);
+    ref.read(lanSyncServiceProvider).cancelInitiatedPairing(widget.peer.id);
     // cancelInitiatedPairing 自身会推一条 PairingResult 触发关闭，无需手动 pop
   }
 
@@ -484,17 +473,12 @@ class _WaitingForPeerDialogState extends ConsumerState<_WaitingForPeerDialog> {
             '对方需要在弹窗中输入你的 6 位 PIN 后双方才配对成功。',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
-      actions: [
-        TextButton(
-          onPressed: _onCancel,
-          child: const Text('取消配对'),
-        ),
-      ],
+      actions: [TextButton(onPressed: _onCancel, child: const Text('取消配对'))],
     );
   }
 }
@@ -560,49 +544,45 @@ class _PeerSection extends StatelessWidget {
       children: [
         if (paired.isNotEmpty) ...[
           const _SectionHeader('已配对'),
-          ...paired.map(
-            (p) {
-              // 已配对但当前离线(mDNS lost 但 isPaired 仍为 true)时 p.host
-              // 仍指向最后一次见到时的地址,点「连接」由服务层负责 connect 失败处理
-              return DeviceTile(
-                peer: p,
-                onConnectPairedTap: p.isConnected
-                    ? null
-                    : () => onConnectPaired(p),
-                onDisconnectTap: p.isConnected
-                    ? () => _confirmDisconnect(context, p, onDisconnect)
-                    : null,
-                onUnpairTap: p.isConnected
-                    ? () => _confirmUnpair(context, p, onUnpair)
-                    : null,
-              );
-            },
-          ),
+          ...paired.map((p) {
+            // 已配对但当前离线(mDNS lost 但 isPaired 仍为 true)时 p.host
+            // 仍指向最后一次见到时的地址,点「连接」由服务层负责 connect 失败处理
+            return DeviceTile(
+              peer: p,
+              onConnectPairedTap: p.isConnected
+                  ? null
+                  : () => onConnectPaired(p),
+              onDisconnectTap: p.isConnected
+                  ? () => _confirmDisconnect(context, p, onDisconnect)
+                  : null,
+              onUnpairTap: p.isConnected
+                  ? () => _confirmUnpair(context, p, onUnpair)
+                  : null,
+            );
+          }),
         ],
         if (unpaired.isNotEmpty) ...[
           const _SectionHeader('可发现'),
-          ...unpaired.map(
-            (p) {
-              final requiresPrivate =
-                  localMode.acceptsPrivate && p.mode.acceptsPrivate;
-              // 公共模式已连接的对端会落到这里(无配对概念),
-              // 同样需要能断开 → 总是注入 onDisconnectTap,DeviceTile 内部按状态分发
-              return DeviceTile(
+          ...unpaired.map((p) {
+            final requiresPrivate =
+                localMode.acceptsPrivate && p.mode.acceptsPrivate;
+            // 公共模式已连接的对端会落到这里(无配对概念),
+            // 同样需要能断开 → 总是注入 onDisconnectTap,DeviceTile 内部按状态分发
+            return DeviceTile(
+              peer: p,
+              requiresPrivate: requiresPrivate,
+              onPairTap: () => _onUnpairedTap(
+                context: context,
                 peer: p,
                 requiresPrivate: requiresPrivate,
-                onPairTap: () => _onUnpairedTap(
-                  context: context,
-                  peer: p,
-                  requiresPrivate: requiresPrivate,
-                  onPair: onPair,
-                  onConnectPublic: onConnectPublic,
-                ),
-                onDisconnectTap: p.isConnected
-                    ? () => _confirmDisconnect(context, p, onDisconnect)
-                    : null,
-              );
-            },
-          ),
+                onPair: onPair,
+                onConnectPublic: onConnectPublic,
+              ),
+              onDisconnectTap: p.isConnected
+                  ? () => _confirmDisconnect(context, p, onDisconnect)
+                  : null,
+            );
+          }),
         ],
       ],
     );
@@ -631,9 +611,7 @@ class _PeerSection extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('断开连接？'),
-        content: Text(
-          '确定断开与 "${peer.name}" 的连接？\n配对信息会保留,可在列表中再次连接。',
-        ),
+        content: Text('确定断开与 "${peer.name}" 的连接？\n配对信息会保留,可在列表中再次连接。'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),

@@ -39,8 +39,7 @@ List<Music> pickDiverse({
         .map((eh) => TextSimHash.hammingFast(ch, eh))
         .reduce((a, b) => a < b ? a : b);
     return MapEntry(c, minDist);
-  }).toList()
-    ..sort((a, b) => b.value.compareTo(a.value));
+  }).toList()..sort((a, b) => b.value.compareTo(a.value));
 
   return scored.take(count).map((e) => e.key).toList();
 }

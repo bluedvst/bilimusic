@@ -88,9 +88,7 @@ class _DetailPageState extends ConsumerState<DetailPage> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _lyricSources = [
-            LyricSource(id: 'local', name: _music.title),
-          ];
+          _lyricSources = [LyricSource(id: 'local', name: _music.title)];
           _isLoadingLyrics = false;
         });
       }
@@ -285,8 +283,7 @@ class _DetailPageState extends ConsumerState<DetailPage> {
       onPlaylist: _showPlaylist,
       onLoadLyric: _loadLyric,
       onSeek: _seek,
-       onTogglePlayMode: togglePlayMode,
-     );
+      onTogglePlayMode: togglePlayMode,
+    );
   }
 }
-

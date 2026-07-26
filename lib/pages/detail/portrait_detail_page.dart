@@ -199,9 +199,7 @@ class _PortraitDetailPageState extends ConsumerState<PortraitDetailPage> {
   }
 
   bool _isFavorite() {
-    return ref
-        .read(playbackCommandsProvider.notifier)
-        .isFavorite(widget.music);
+    return ref.read(playbackCommandsProvider.notifier).isFavorite(widget.music);
   }
 
   Widget _buildLyricsView(BuildContext context) {

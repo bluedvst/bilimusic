@@ -658,7 +658,9 @@ class PlayerCoordinator {
     );
 
     await _playCurrentTrack();
-    debugPrint('[PlayerCoordinator] roam started from $playlistId, style=$style');
+    debugPrint(
+      '[PlayerCoordinator] roam started from $playlistId, style=$style',
+    );
   }
 
   /// 应用漫游播放列表（供 onboarding 完成步骤使用）。
@@ -736,7 +738,9 @@ class PlayerCoordinator {
 
     // 副种子：从 session.seeds 中随机抽 1 颗（剔除与 currentMusic 同 id 的）
     final pool = session.seeds.where((s) => s.id != current.id).toList();
-    final companion = pool.isNotEmpty ? pool[_random.nextInt(pool.length)] : null;
+    final companion = pool.isNotEmpty
+        ? pool[_random.nextInt(pool.length)]
+        : null;
     final seeds = companion != null && companion.id != current.id
         ? [current, companion]
         : [current];

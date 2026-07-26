@@ -15,13 +15,13 @@ import 'package:bilimusic/utils/seed_diversity.dart';
 
 /// 漫游引导步骤枚举。
 enum OnboardingStep {
-  pickPlaylist,    // [A] 选择歌单
+  pickPlaylist, // [A] 选择歌单
   prefetchLoading, // [A.5] 预取候选推荐
-  pickSeeds,       // [B] 用户挑选种子（PageView，1 或 3 页）
-  pickStyle,       // [C] 选择漫游风格
-  finalLoading,    // [D] 最终拉取推荐
-  error,           // 任何失败 → 错误页（可重试）
-  done,            // 已就绪，等 apply
+  pickSeeds, // [B] 用户挑选种子（PageView，1 或 3 页）
+  pickStyle, // [C] 选择漫游风格
+  finalLoading, // [D] 最终拉取推荐
+  error, // 任何失败 → 错误页（可重试）
+  done, // 已就绪，等 apply
 }
 
 /// 漫游数据量模式。
@@ -41,14 +41,14 @@ class OnboardingState {
   final String? playlistName;
   final List<Music> tempQueue;
   final RoamMode mode;
-  final int candidateCount;       // 每轮挑选的候选数 X: 1 (lowData) 或 3 (normal)
-  final int recsCount;            // 最终推荐数: 2 (lowData) 或 6 (normal)
+  final int candidateCount; // 每轮挑选的候选数 X: 1 (lowData) 或 3 (normal)
+  final int recsCount; // 最终推荐数: 2 (lowData) 或 6 (normal)
 
   // 步骤 [B] 用
-  final List<List<Music>> roundOptions;   // [round1Cards, round2Cards, ...]
-  final List<int?> selectedSeedIndex;     // 每轮用户选中的下标（默认 0）
-  final List<Music?> userPicks;           // parallel 缓存，避免索引错位
-  final int currentSectionIndex;          // PageView 当前页
+  final List<List<Music>> roundOptions; // [round1Cards, round2Cards, ...]
+  final List<int?> selectedSeedIndex; // 每轮用户选中的下标（默认 0）
+  final List<Music?> userPicks; // parallel 缓存，避免索引错位
+  final int currentSectionIndex; // PageView 当前页
 
   // 步骤 [C] 用
   final RoamStyle style;
@@ -122,8 +122,7 @@ class OnboardingState {
 
   /// 是否所有轮次都有选中的种子。
   bool get allSeedsPicked =>
-      userPicks.length == roundsCount &&
-      userPicks.every((p) => p != null);
+      userPicks.length == roundsCount && userPicks.every((p) => p != null);
 
   /// 总轮次数（lowData=1, normal=3）。
   int get roundsCount => mode == RoamMode.normal ? 3 : 1;
@@ -169,9 +168,7 @@ class RoamOnboardingNotifier extends Notifier<OnboardingState> {
     if (_disposed) return;
 
     if (songs.length < 3) {
-      state = state.copyWith(
-        error: '歌单至少需要 3 首歌（当前 ${songs.length} 首）',
-      );
+      state = state.copyWith(error: '歌单至少需要 3 首歌（当前 ${songs.length} 首）');
       return;
     }
 
@@ -217,7 +214,7 @@ class RoamOnboardingNotifier extends Notifier<OnboardingState> {
     final tempQueue = state.tempQueue;
     final candidateCount = state.candidateCount;
     final roundsCount = state.roundsCount;
-    final excludeIds = <String>{};        // 已选过的 candidate id，避免跨轮重复
+    final excludeIds = <String>{}; // 已选过的 candidate id，避免跨轮重复
     final previousCandidates = <Music>[]; // 前几轮选的 candidate 集合，用于多样性参考
     final roundOptions = <List<Music>>[];
 
@@ -228,9 +225,7 @@ class RoamOnboardingNotifier extends Notifier<OnboardingState> {
         statusMessage: '正在挑选第 ${round + 1} / $roundsCount 轮候选...',
       );
 
-      final pool = tempQueue
-          .where((m) => !excludeIds.contains(m.id))
-          .toList();
+      final pool = tempQueue.where((m) => !excludeIds.contains(m.id)).toList();
 
       final candidates = pickDiverse(
         pool: pool,
@@ -278,10 +273,7 @@ class RoamOnboardingNotifier extends Notifier<OnboardingState> {
     newIndex[round] = index;
     newPicks[round] = options[index];
 
-    state = state.copyWith(
-      selectedSeedIndex: newIndex,
-      userPicks: newPicks,
-    );
+    state = state.copyWith(selectedSeedIndex: newIndex, userPicks: newPicks);
   }
 
   void setSectionIndex(int index) {
@@ -337,10 +329,7 @@ class RoamOnboardingNotifier extends Notifier<OnboardingState> {
     final minThreshold = (totalSize * 0.5).ceil();
     if (recs.length < minThreshold) {
       if (state.retryCount == 0) {
-        state = state.copyWith(
-          retryCount: 1,
-          statusMessage: '推荐不足，正在重试...',
-        );
+        state = state.copyWith(retryCount: 1, statusMessage: '推荐不足，正在重试...');
         await Future.delayed(const Duration(milliseconds: 500));
         if (_disposed) return;
         return _runFinalFetch();
@@ -482,5 +471,5 @@ class RoamOnboardingNotifier extends Notifier<OnboardingState> {
 
 final roamOnboardingProvider =
     NotifierProvider.autoDispose<RoamOnboardingNotifier, OnboardingState>(
-  RoamOnboardingNotifier.new,
-);
+      RoamOnboardingNotifier.new,
+    );

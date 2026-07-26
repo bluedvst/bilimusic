@@ -42,22 +42,14 @@ class _PairRequestDialogState extends ConsumerState<PairRequestDialog> {
         children: [
           const Icon(Icons.devices),
           const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              '配对请求',
-              style: theme.textTheme.titleMedium,
-            ),
-          ),
+          Expanded(child: Text('配对请求', style: theme.textTheme.titleMedium)),
         ],
       ),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '${widget.peerName} 想要与你配对。',
-            style: theme.textTheme.bodyMedium,
-          ),
+          Text('${widget.peerName} 想要与你配对。', style: theme.textTheme.bodyMedium),
           const SizedBox(height: 12),
           Text(
             '请在 ${widget.peerName} 的"局域网同步"页查看 6 位 PIN 并输入：',

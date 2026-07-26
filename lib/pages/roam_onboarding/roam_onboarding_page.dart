@@ -296,15 +296,15 @@ class _SeedStepState extends ConsumerState<_SeedStep> {
               Text(
                 '选 ${state.roundsCount} 颗你想漫游的种子',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 '每轮从歌单中挑出一些候选，你选 1 颗作为这轮漫游方向',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
               if (state.roundsCount > 1) ...[
                 const SizedBox(height: 8),
@@ -336,8 +336,7 @@ class _SeedStepState extends ConsumerState<_SeedStep> {
                   ),
                   _PageArrowButton(
                     direction: _ArrowDirection.next,
-                    enabled:
-                        state.currentSectionIndex < state.roundsCount - 1,
+                    enabled: state.currentSectionIndex < state.roundsCount - 1,
                     onPressed: () => _pageController.nextPage(
                       duration: AppTokens.standardDuration,
                       curve: AppTokens.standardEasing,
@@ -416,10 +415,7 @@ class _RoundPage extends ConsumerWidget {
 
     if (options.isEmpty) {
       return Center(
-        child: Text(
-          '这轮没有候选歌曲',
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
+        child: Text('这轮没有候选歌曲', style: Theme.of(context).textTheme.bodyMedium),
       );
     }
 
@@ -450,10 +446,7 @@ class _SeedBottomBar extends ConsumerWidget {
       decoration: BoxDecoration(
         color: palette.panelSurface,
         border: Border(
-          top: BorderSide(
-            color: Theme.of(context).dividerColor,
-            width: 0.5,
-          ),
+          top: BorderSide(color: Theme.of(context).dividerColor, width: 0.5),
         ),
       ),
       child: Column(
@@ -505,12 +498,11 @@ class _SwipeHint extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final platform = theme.platform;
-    final isDesktop = platform == TargetPlatform.macOS ||
+    final isDesktop =
+        platform == TargetPlatform.macOS ||
         platform == TargetPlatform.windows ||
         platform == TargetPlatform.linux;
-    final message = isDesktop
-        ? '滚动鼠标滚轮切换轮次 · 点击卡片换种子'
-        : '左右滑动切换轮次 · 点击卡片换种子';
+    final message = isDesktop ? '滚动鼠标滚轮切换轮次 · 点击卡片换种子' : '左右滑动切换轮次 · 点击卡片换种子';
     final iconData = isDesktop ? Icons.mouse : Icons.swipe;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -521,11 +513,7 @@ class _SwipeHint extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            iconData,
-            size: 14,
-            color: theme.colorScheme.onPrimaryContainer,
-          ),
+          Icon(iconData, size: 14, color: theme.colorScheme.onPrimaryContainer),
           const SizedBox(width: 6),
           Text(
             message,
@@ -557,16 +545,16 @@ class _StyleStep extends ConsumerWidget {
         children: [
           Text(
             '选漫游风格',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           Text(
             '决定续杯时如何挑选新歌',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 32),
           RoamStyleSegmented(

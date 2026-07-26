@@ -64,33 +64,21 @@ class DeviceTile extends StatelessWidget {
       ),
       title: Row(
         children: [
-          Text(
-            peer.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+          Text(peer.name, maxLines: 1, overflow: TextOverflow.ellipsis),
           const SizedBox(width: 6),
-          if (peer.mode != LanSyncMode.off) ...[
-            _ModeChip(peer.mode),
-          ],
-        ]
+          if (peer.mode != LanSyncMode.off) ...[_ModeChip(peer.mode)],
+        ],
       ),
       subtitle: Row(
         children: [
           Text(
             _platformLabel(peer.platform),
-            style: TextStyle(
-              fontSize: 12,
-              color: colorScheme.onSurfaceVariant,
-            ),
+            style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
           ),
           const SizedBox(width: 6),
           _StatusDot(color: statusColor),
           const SizedBox(width: 4),
-          Text(
-            statusText,
-            style: TextStyle(fontSize: 12, color: statusColor),
-          ),
+          Text(statusText, style: TextStyle(fontSize: 12, color: statusColor)),
         ],
       ),
       trailing: _buildTrailing(state),
@@ -236,7 +224,7 @@ Color _platformColor(String platform) {
 Future<void> copyToClipboard(BuildContext context, String value) async {
   await Clipboard.setData(ClipboardData(text: value));
   if (!context.mounted) return;
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('已复制到剪贴板')),
-  );
+  ScaffoldMessenger.of(
+    context,
+  ).showSnackBar(const SnackBar(content: Text('已复制到剪贴板')));
 }

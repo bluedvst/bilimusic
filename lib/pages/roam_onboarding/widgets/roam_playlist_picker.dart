@@ -37,7 +37,7 @@ class RoamPlaylistPicker extends ConsumerWidget {
 
   /// 用户点选歌单后的回调。
   final void Function(String playlistId, String playlistName, int songCount)
-      onPlaylistSelected;
+  onPlaylistSelected;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -145,8 +145,11 @@ class RoamBanner extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.warning_amber_rounded,
-                  color: Colors.orange[700], size: 16),
+              Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.orange[700],
+                size: 16,
+              ),
               const SizedBox(width: 4),
               Expanded(
                 child: Text(
@@ -180,7 +183,7 @@ class _PlaylistTile extends StatelessWidget {
   final String name;
   final int songCount;
   final void Function(String playlistId, String playlistName, int songCount)
-      onTap;
+  onTap;
   final IconData icon;
   final Color iconColor;
 

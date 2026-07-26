@@ -185,7 +185,12 @@ class FullWidthTrackShape extends SliderTrackShape {
   }) {
     final trackHeight = sliderTheme.trackHeight ?? 4;
     final trackTop = offset.dy + (parentBox.size.height - trackHeight) / 2;
-    return Rect.fromLTWH(offset.dx, trackTop, parentBox.size.width, trackHeight);
+    return Rect.fromLTWH(
+      offset.dx,
+      trackTop,
+      parentBox.size.width,
+      trackHeight,
+    );
   }
 
   @override

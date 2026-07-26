@@ -36,9 +36,7 @@ class SeedCard extends StatelessWidget {
             : palette.surfacePressed.withValues(alpha: 0.3),
         borderRadius: radius,
         border: Border.all(
-          color: selected
-              ? theme.colorScheme.primary
-              : Colors.transparent,
+          color: selected ? theme.colorScheme.primary : Colors.transparent,
           width: 2,
         ),
       ),

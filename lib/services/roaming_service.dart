@@ -20,9 +20,9 @@ class RoamingService {
     required BiliClient client,
     required PlaylistService playlistService,
     Random? random,
-  })  : _client = client,
-        _playlistService = playlistService,
-        _random = random ?? Random();
+  }) : _client = client,
+       _playlistService = playlistService,
+       _random = random ?? Random();
 
   final BiliClient _client;
   final PlaylistService _playlistService;
@@ -50,22 +50,23 @@ class RoamingService {
         final tid = item['tid'] as int?;
         if (!isMusicCategory(tid)) continue;
 
-        final id = (item['bvid'] as String?) ??
-            (item['aid']?.toString() ?? '');
+        final id = (item['bvid'] as String?) ?? (item['aid']?.toString() ?? '');
         if (id.isEmpty) continue;
 
-        candidates.add(Music(
-          id: id,
-          title: (item['title'] as String?) ?? '',
-          artist: (item['owner']?['name'] as String?) ?? '未知艺术家',
-          album: (item['tname'] as String?) ?? '未知专辑',
-          coverUrl: '${item['pic'] ?? ''}@672w_378h',
-          duration: item['duration'] is int
-              ? Duration(seconds: item['duration'] as int)
-              : null,
-          audioUrl: '',
-          pages: const [],
-        ));
+        candidates.add(
+          Music(
+            id: id,
+            title: (item['title'] as String?) ?? '',
+            artist: (item['owner']?['name'] as String?) ?? '未知艺术家',
+            album: (item['tname'] as String?) ?? '未知专辑',
+            coverUrl: '${item['pic'] ?? ''}@672w_378h',
+            duration: item['duration'] is int
+                ? Duration(seconds: item['duration'] as int)
+                : null,
+            audioUrl: '',
+            pages: const [],
+          ),
+        );
       }
 
       return _pick(candidates, seed: seed, style: style, size: size);
@@ -91,8 +92,7 @@ class RoamingService {
     final existing = <String>{
       for (final m in _playlistService.currentPlaylist.value)
         '${m.id}_${m.cid}',
-      for (final m in _playlistService.playHistorySnapshot)
-        '${m.id}_${m.cid}',
+      for (final m in _playlistService.playHistorySnapshot) '${m.id}_${m.cid}',
     };
     final fresh = candidates
         .where((m) => !existing.contains('${m.id}_${m.cid}'))
@@ -104,8 +104,10 @@ class RoamingService {
     fresh.sort((a, b) {
       final ha = TextSimHash.simhash(TextSimHash.musicToText(a));
       final hb = TextSimHash.simhash(TextSimHash.musicToText(b));
-      return TextSimHash.hammingFast(seedHash, ha)
-          .compareTo(TextSimHash.hammingFast(seedHash, hb));
+      return TextSimHash.hammingFast(
+        seedHash,
+        ha,
+      ).compareTo(TextSimHash.hammingFast(seedHash, hb));
     });
 
     switch (style) {
@@ -173,8 +175,11 @@ class RoamingService {
     final perSeed = (totalSize / seeds.length).ceil();
     final futures = seeds.map((s) async {
       try {
-        return await fetchBatch(seed: s, style: style, size: perSeed)
-            .timeout(timeout);
+        return await fetchBatch(
+          seed: s,
+          style: style,
+          size: perSeed,
+        ).timeout(timeout);
       } catch (_) {
         return const <Music>[];
       }

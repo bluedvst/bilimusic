@@ -145,13 +145,15 @@ class SettingsManager extends ChangeNotifier {
     // 加载漫游模式设置
     _cache[KEY_ROAM_STYLE] =
         prefs.getString(KEY_ROAM_STYLE) ?? DEFAULT_ROAM_STYLE.name;
-    _cache[KEY_ROAM_REFILL_THRESHOLD] = prefs.getInt(KEY_ROAM_REFILL_THRESHOLD) ??
+    _cache[KEY_ROAM_REFILL_THRESHOLD] =
+        prefs.getInt(KEY_ROAM_REFILL_THRESHOLD) ??
         DEFAULT_ROAM_REFILL_THRESHOLD;
 
     // 加载局域网同步设置
     _cache[KEY_LAN_SYNC_MODE] =
         prefs.getString(KEY_LAN_SYNC_MODE) ?? DEFAULT_LAN_SYNC_MODE;
-    _cache[KEY_LAN_SYNC_DEVICE_NAME] = prefs.getString(KEY_LAN_SYNC_DEVICE_NAME) ??
+    _cache[KEY_LAN_SYNC_DEVICE_NAME] =
+        prefs.getString(KEY_LAN_SYNC_DEVICE_NAME) ??
         DEFAULT_LAN_SYNC_DEVICE_NAME;
   }
 

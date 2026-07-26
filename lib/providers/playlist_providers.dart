@@ -158,7 +158,8 @@ class PlaylistCommands extends Notifier<void> {
 
   Future<void> clearPlaylist() => _ps.clearPlaylist();
 
-  Future<void> deletePlaylist(String playlistId) => _ps.deletePlaylist(playlistId);
+  Future<void> deletePlaylist(String playlistId) =>
+      _ps.deletePlaylist(playlistId);
 
   Future<void> moveInPlaylist(int from, int to) => _ps.moveInPlaylist(from, to);
 

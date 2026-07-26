@@ -67,9 +67,7 @@ class _RoamInfoDialog extends ConsumerWidget {
           child: const Text('导出配置'),
         ),
         TextButton(
-          onPressed: coordinator.isRoaming
-              ? () => _onStop(context, ref)
-              : null,
+          onPressed: coordinator.isRoaming ? () => _onStop(context, ref) : null,
           style: TextButton.styleFrom(foregroundColor: Colors.red),
           child: const Text('停止漫游'),
         ),
@@ -86,9 +84,9 @@ class _RoamInfoDialog extends ConsumerWidget {
       ref.read(playerCoordinatorProvider),
     );
     if (config == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('无法导出：当前无活跃漫游会话')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('无法导出：当前无活跃漫游会话')));
       return;
     }
     final text = config.toPlainText();
@@ -108,8 +106,8 @@ class _RoamInfoDialog extends ConsumerWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onInverseSurface,
-                  ),
+                color: Theme.of(context).colorScheme.onInverseSurface,
+              ),
             ),
           ],
         ),
@@ -124,11 +122,11 @@ class _RoamInfoDialog extends ConsumerWidget {
 }
 
 String _styleDisplayName(RoamStyle? s) => switch (s) {
-      RoamStyle.similar => '相似',
-      RoamStyle.balanced => '平衡',
-      RoamStyle.explore => '探索',
-      null => '未知',
-    };
+  RoamStyle.similar => '相似',
+  RoamStyle.balanced => '平衡',
+  RoamStyle.explore => '探索',
+  null => '未知',
+};
 
 class _InfoRow extends StatelessWidget {
   const _InfoRow({required this.label, required this.value});
@@ -150,12 +148,7 @@ class _InfoRow extends StatelessWidget {
             ),
           ),
         ),
-        Expanded(
-          child: Text(
-            value,
-            style: theme.textTheme.bodyMedium,
-          ),
-        ),
+        Expanded(child: Text(value, style: theme.textTheme.bodyMedium)),
       ],
     );
   }

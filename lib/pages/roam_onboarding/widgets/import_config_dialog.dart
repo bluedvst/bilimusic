@@ -86,10 +86,7 @@ class _ImportConfigDialogState extends State<_ImportConfigDialog> {
               autofocus: true,
               minLines: 4,
               maxLines: 8,
-              style: const TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 13,
-              ),
+              style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
               decoration: InputDecoration(
                 border: const OutlineInputBorder(),
                 hintText: '2-r-b-2-3-xAVezxEkw-QwU7BREo6-GzV36pE5h',

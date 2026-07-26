@@ -266,7 +266,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   ),
 
                   const SizedBox(height: 20),
-                  
+
                   // 功能列表
                   _buildFunctionList(),
                 ],
@@ -485,8 +485,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                               );
                               if (playlist.isDefault) return tile;
                               return ContextMenuWidget(
-                                menuProvider: (_) =>
-                                    buildPlaylistContextMenu(
+                                menuProvider: (_) => buildPlaylistContextMenu(
                                   context: context,
                                   playlist: playlist,
                                   onDelete: () => confirmAndDeletePlaylist(
