@@ -19,6 +19,7 @@ import 'package:bilimusic/pages/data_migration_page.dart';
 import 'package:bilimusic/pages/login_page.dart';
 import 'package:bilimusic/pages/fav_import_page.dart';
 import 'package:bilimusic/pages/roam_onboarding/roam_onboarding_page.dart';
+import 'package:bilimusic/pages/sync_page.dart';
 
 /// 竖屏与横屏两个壳共享的页面渲染逻辑。
 ///
@@ -69,6 +70,8 @@ Widget buildShellPageContent({
       return LoginPage();
     case ShellPage.roamOnboarding:
       return const RoamOnboardingPage();
+    case ShellPage.lanSync:
+      return const LanSyncPage();
   }
 }
 

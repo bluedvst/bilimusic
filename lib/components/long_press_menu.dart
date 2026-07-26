@@ -1,10 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:bilimusic/core/app_providers.dart';
+import 'package:bilimusic/models/sync/lan_sync_mode.dart';
+import 'package:bilimusic/models/sync/peer_device.dart';
 import 'package:bilimusic/services/player_coordinator.dart';
 import 'package:bilimusic/managers/playlist_manager.dart';
 import 'package:bilimusic/models/music.dart';
 import 'package:bilimusic/models/playlist.dart';
+import 'package:bilimusic/providers/lan_sync_providers.dart';
 import 'package:bilimusic/providers/playlist_providers.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:super_context_menu/super_context_menu.dart';
@@ -106,6 +111,8 @@ FutureOr<Menu?> buildMusicContextMenu({
         ),
       ],
       MenuSeparator(),
+      _buildPushToDeviceSubmenu(context, music),
+      MenuSeparator(),
       MenuAction(
         title: '分享',
         image: MenuImage.icon(Icons.share),
@@ -180,6 +187,89 @@ Menu _buildAddToPlaylistSubmenu(
         ),
     ],
   );
+}
+
+/// 构建"推送到设备"子菜单。
+///
+/// 仅列出已配对 + 已连接 + 对端模式为 private 的对端；
+/// 没有可推设备时仍保留外壳并显示 disabled "暂无可用设备"，
+/// 避免用户不知道该功能存在。
+Menu _buildPushToDeviceSubmenu(BuildContext context, Music music) {
+  List<PeerDevice> eligible = const [];
+  try {
+    final container = ProviderScope.containerOf(context);
+    final peersAsync = container.read(peersProvider);
+    final peers = peersAsync.asData?.value ?? const <PeerDevice>[];
+    eligible = peers
+        .where(
+          (p) =>
+              p.isPaired &&
+              p.isConnected &&
+              p.mode == LanSyncMode.private,
+        )
+        .toList()
+      ..sort((a, b) => a.name.compareTo(b.name));
+  } catch (_) {
+    // riverpod 不可用（如 widget 被脱离 ProviderScope 测试）—— 当作无可用设备
+    eligible = const [];
+  }
+
+  return Menu(
+    title: '推送到设备',
+    image: MenuImage.icon(Icons.cast_connected),
+    children: [
+      if (eligible.isEmpty)
+        MenuAction(
+          title: '暂无可用设备',
+          attributes: const MenuActionAttributes(disabled: true),
+          callback: () {},
+        )
+      else
+        ...eligible.map(
+          (peer) => MenuAction(
+            title: peer.name,
+            image: MenuImage.icon(_platformIcon(peer.platform)),
+            callback: () => _pushToDevice(context, music, peer),
+          ),
+        ),
+    ],
+  );
+}
+
+Future<void> _pushToDevice(
+  BuildContext context,
+  Music music,
+  PeerDevice peer,
+) async {
+  if (!context.mounted) return;
+  final messenger = ScaffoldMessenger.of(context);
+  final lanSvc = ProviderScope.containerOf(context).read(lanSyncServiceProvider);
+  try {
+    final detailed = await music.getVideoDetails();
+    lanSvc.pushMusicToPeer(peer.id, detailed);
+    messenger.showSnackBar(
+      SnackBar(content: Text('已推送到"${peer.name}"：${detailed.title}')),
+    );
+  } catch (e) {
+    messenger.showSnackBar(
+      SnackBar(content: Text('推送失败: $e')),
+    );
+  }
+}
+
+/// 为对端平台选一个粗略的图标：mobile / desktop / 其它。
+IconData _platformIcon(String platform) {
+  switch (platform) {
+    case 'android':
+    case 'ios':
+      return Icons.smartphone;
+    case 'windows':
+    case 'macos':
+    case 'linux':
+      return Icons.desktop_mac;
+    default:
+      return Icons.devices;
+  }
 }
 
 void _createNewPlaylist(BuildContext context, PlaylistManager playlistManager) {

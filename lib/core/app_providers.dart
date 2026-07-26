@@ -8,6 +8,9 @@ import 'package:bilimusic/services/player_coordinator.dart';
 import 'package:bilimusic/services/playlist_service.dart';
 import 'package:bilimusic/services/pip_service.dart';
 import 'package:bilimusic/services/roaming_service.dart';
+import 'package:bilimusic/services/sync/device_identity.dart';
+import 'package:bilimusic/services/sync/lan_sync_service.dart';
+import 'package:bilimusic/services/sync/pairing_service.dart';
 import 'package:bilimusic/managers/recommendation_manager.dart';
 import 'package:bilimusic/managers/settings_manager.dart';
 import 'package:bilimusic/managers/user_manager.dart';
@@ -112,4 +115,31 @@ final playerCoordinatorProvider = Provider<PlayerCoordinator>((ref) {
   pc.initialize();
   ref.onDispose(pc.dispose);
   return pc;
+});
+
+// ==================== 局域网同步 ====================
+
+final deviceIdentityProvider = Provider<DeviceIdentity>((ref) {
+  final id = DeviceIdentity();
+  id.load();
+  ref.onDispose(() {});
+  return id;
+});
+
+final pairingServiceProvider = Provider<PairingService>((ref) {
+  final svc = PairingService();
+  svc.load();
+  return svc;
+});
+
+final lanSyncServiceProvider = Provider<LanSyncService>((ref) {
+  final svc = LanSyncService(
+    identity: ref.watch(deviceIdentityProvider),
+    pairing: ref.watch(pairingServiceProvider),
+    settings: ref.watch(settingsManagerProvider),
+    coordinator: ref.watch(playerCoordinatorProvider),
+  );
+  svc.start();
+  ref.onDispose(svc.stop);
+  return svc;
 });

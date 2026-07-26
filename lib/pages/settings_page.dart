@@ -6,6 +6,7 @@ import 'package:bilimusic/theme/app_tokens.dart';
 import 'package:bilimusic/theme/theme_registry.dart';
 import 'package:bilimusic/utils/platform_helper.dart';
 import 'package:bilimusic/shells/shell_page_manager.dart';
+import 'package:bilimusic/pages/sync_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
@@ -216,6 +217,32 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               ),
             ),
 
+            // 局域网同步（仅非 Web 显示）
+            if (!PlatformHelper.isWeb) ...[
+              _buildSectionTitle('局域网同步'),
+              ListTile(
+                leading: Icon(Icons.wifi_tethering, color: _getPrimaryColor(context)),
+                title: const Text('同步模式'),
+                subtitle: Text(_lanSyncModeText(settings.lanSyncMode)),
+                trailing: DropdownButton<String>(
+                  value: settings.lanSyncMode,
+                  items: const [
+                    DropdownMenuItem(value: 'off', child: Text('关闭')),
+                    DropdownMenuItem(value: 'private', child: Text('私有')),
+                    DropdownMenuItem(value: 'public', child: Text('公共')),
+                  ],
+                  onChanged: notifier.setLanSyncMode,
+                ),
+              ),
+              ListTile(
+                leading: Icon(Icons.devices, color: _getPrimaryColor(context)),
+                title: const Text('设备管理'),
+                subtitle: const Text('发现设备、配对、查看本机 PIN'),
+                trailing: const Icon(Icons.arrow_forward_ios_rounded),
+                onTap: openLanSyncPage,
+              ),
+            ],
+
             // 数据管理
             _buildSectionTitle('数据'),
             ListTile(
@@ -278,6 +305,15 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     return Theme.of(context).brightness == Brightness.dark
         ? Colors.white
         : Theme.of(context).primaryColor;
+  }
+
+  String _lanSyncModeText(String mode) {
+    return switch (mode) {
+      'off' => '关闭：不广播也不发现',
+      'private' => '私有：配对后双向同步（推荐）',
+      'public' => '公共：仅对局域网暴露正在播放',
+      _ => '关闭',
+    };
   }
 
   Widget _buildSectionTitle(String title) {

@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:bilimusic/shells/shell_page_manager.dart';
 import 'package:bilimusic/providers/playlist_providers.dart';
 import 'package:bilimusic/pages/profile/widgets/roam_section.dart';
+import 'package:bilimusic/pages/profile/widgets/lansync_section.dart';
 import 'package:super_context_menu/super_context_menu.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
@@ -366,6 +367,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
         // 漫游模式
         const RoamSection(),
+
+        const Divider(height: 1),
+
+        // 局域网同步
+        const LanSyncSection(),
 
         // Bilibili 收藏夹同步（仅登录后显示）
         if (ref.read(userManagerProvider).isLoggedIn) ...[

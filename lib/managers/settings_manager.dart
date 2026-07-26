@@ -30,6 +30,10 @@ class SettingsManager extends ChangeNotifier {
   static const String KEY_ROAM_STYLE = 'roam_style';
   static const String KEY_ROAM_REFILL_THRESHOLD = 'roam_refill_threshold';
 
+  // 局域网同步设置键名
+  static const String KEY_LAN_SYNC_MODE = 'lan_sync_mode';
+  static const String KEY_LAN_SYNC_DEVICE_NAME = 'lan_sync_device_name';
+
   // 默认值
   static const bool DEFAULT_NOTIFICATIONS_ENABLED = true;
   static const bool DEFAULT_DOWNLOAD_QUALITY_HIGH = true;
@@ -53,6 +57,10 @@ class SettingsManager extends ChangeNotifier {
   // 漫游模式默认值
   static const RoamStyle DEFAULT_ROAM_STYLE = RoamStyle.balanced;
   static const int DEFAULT_ROAM_REFILL_THRESHOLD = 2;
+
+  // 局域网同步默认值
+  static const String DEFAULT_LAN_SYNC_MODE = 'off';
+  static const String DEFAULT_LAN_SYNC_DEVICE_NAME = '';
 
   // 单例实例
   static final SettingsManager _instance = SettingsManager._internal();
@@ -139,6 +147,12 @@ class SettingsManager extends ChangeNotifier {
         prefs.getString(KEY_ROAM_STYLE) ?? DEFAULT_ROAM_STYLE.name;
     _cache[KEY_ROAM_REFILL_THRESHOLD] = prefs.getInt(KEY_ROAM_REFILL_THRESHOLD) ??
         DEFAULT_ROAM_REFILL_THRESHOLD;
+
+    // 加载局域网同步设置
+    _cache[KEY_LAN_SYNC_MODE] =
+        prefs.getString(KEY_LAN_SYNC_MODE) ?? DEFAULT_LAN_SYNC_MODE;
+    _cache[KEY_LAN_SYNC_DEVICE_NAME] = prefs.getString(KEY_LAN_SYNC_DEVICE_NAME) ??
+        DEFAULT_LAN_SYNC_DEVICE_NAME;
   }
 
   /// 获取通知设置
@@ -334,6 +348,23 @@ class SettingsManager extends ChangeNotifier {
   Future<void> setRoamRefillThreshold(int value) async {
     final clamped = value.clamp(1, 5);
     await _saveSetting(KEY_ROAM_REFILL_THRESHOLD, clamped);
+  }
+
+  // ============ 局域网同步相关设置 ============
+
+  /// 局域网同步模式：`off` / `private` / `public`。
+  String get lanSyncMode => _cache[KEY_LAN_SYNC_MODE] ?? DEFAULT_LAN_SYNC_MODE;
+
+  Future<void> setLanSyncMode(String value) async {
+    await _saveSetting(KEY_LAN_SYNC_MODE, value);
+  }
+
+  /// 用户自定义的设备名。空字符串表示沿用 DeviceIdentity 的默认值。
+  String get lanSyncDeviceName =>
+      _cache[KEY_LAN_SYNC_DEVICE_NAME] ?? DEFAULT_LAN_SYNC_DEVICE_NAME;
+
+  Future<void> setLanSyncDeviceName(String value) async {
+    await _saveSetting(KEY_LAN_SYNC_DEVICE_NAME, value);
   }
 
   /// 获取外观的文本描述
