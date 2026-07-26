@@ -65,20 +65,29 @@ class TextSimHash {
     return sb.toString();
   }
 
+  // 64-bit SWAR popcount 常量（用 BigInt 字符串构造，避开 dart2js 53 位限制）。
+  static final _popM1 = BigInt.parse('5555555555555555', radix: 16);
+  static final _popM2 = BigInt.parse('3333333333333333', radix: 16);
+  static final _popM4 = BigInt.parse('0f0f0f0f0f0f0f0f', radix: 16);
+  static final _popM7f = BigInt.parse('7f', radix: 16);
+
   /// 64-bit SWAR popcount（统计二进制 1 的个数）。
-  static int _popcount64(int x) {
-    x = x - ((x >> 1) & 0x5555555555555555);
-    x = (x & 0x3333333333333333) + ((x >> 2) & 0x3333333333333333);
-    x = (x + (x >> 4)) & 0x0f0f0f0f0f0f0f0f;
+  ///
+  /// BigInt 实现：在 Web (dart2js) 上 64 位 int 字面量无法精确表示，
+  /// 且 BigInt→int 会在 > 53 位时静默截断。所以整路径走 BigInt，最后才落回 int。
+  static int _popcount64(BigInt x) {
+    x = x - ((x >> 1) & _popM1);
+    x = (x & _popM2) + ((x >> 2) & _popM2);
+    x = (x + (x >> 4)) & _popM4;
     x = x + (x >> 8);
     x = x + (x >> 16);
     x = x + (x >> 32);
-    return x & 0x7f;
+    return (x & _popM7f).toInt();
   }
 
-  /// 将 64 位二进制字符串解析为有符号 64 位 int。
-  static int _parseBits64(String s) {
-    return BigInt.parse(s, radix: 2).toSigned(64).toInt();
+  /// 将 64 位二进制字符串解析为有符号 64 位 BigInt。
+  static BigInt _parseBits64(String s) {
+    return BigInt.parse(s, radix: 2).toSigned(64);
   }
 
   /// 两条 128 位 SimHash 之间的汉明距离（高 64 + 低 64 XOR + popcount）。
