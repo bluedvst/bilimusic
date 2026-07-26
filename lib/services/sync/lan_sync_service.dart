@@ -412,7 +412,9 @@ class LanSyncService {
         unawaited(session.close());
         return;
       }
-      session.isPrivate = session.expectsPrivate && tokenMatches;
+      if (!session.isPrivate) {
+        session.isPrivate = session.expectsPrivate && tokenMatches;
+      }
       session.transitionTo(LanSessionState.syncing);
       _sendCurrentState(session);
       if (session.isPrivate) _sendRoster(session);
